@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'">
+  <meta name="color-scheme" content="light dark">
+  <title>AI News Radar · Latest news from the main AI labs</title>
+  <meta name="description" content="The latest news from Anthropic, OpenAI, DeepSeek, Google, AWS and AI News Hub, collected every hour.">
+  <meta property="og:title" content="AI News Radar">
+  <meta property="og:description" content="The latest news from the main AI labs, collected every hour on a serverless AWS stack.">
+  <meta property="og:type" content="website">
+  <link rel="icon" href="/assets/favicon.svg?v=dev" type="image/svg+xml">
+  <link rel="alternate" type="application/rss+xml" title="AI News Radar" href="/feed.xml">
+  <link rel="stylesheet" href="/assets/style.css?v=dev">
+  <script type="module" src="/assets/app.mjs?v=dev"></script>
+</head>
+<body>
+  <a class="skip-link" href="#news">Skip to the news</a>
+
+  <header class="site-header">
+    <div class="wrap">
+      <h1 class="brand"><img src="/assets/favicon.svg?v=dev" alt="" width="32" height="32"> AI News Radar</h1>
+      <p class="tagline">The latest from the main AI labs, collected every hour.</p>
+      <p class="meta">
+        <time id="updated" class="updated">Loading the latest news…</time>
+        <span aria-hidden="true">·</span> <a href="/feed.xml">RSS feed</a>
+        <span aria-hidden="true">·</span> <a href="/news.json">JSON</a>
+      </p>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <nav aria-label="Filter by company">
+      <ul id="filters" class="filters"></ul>
+    </nav>
+    <p id="status" class="status" role="status" hidden></p>
+    <p id="summary" class="visually-hidden" aria-live="polite"></p>
+    <ol id="news" class="news" aria-label="Latest news" tabindex="-1"></ol>
+    <noscript>
+      <p class="status">This list needs JavaScript. The same news is available as an
+        <a href="/feed.xml">RSS feed</a> and as <a href="/news.json">JSON</a>.</p>
+    </noscript>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p>Built with AWS Lambda · DynamoDB · S3 · CloudFront · Terraform · GitHub Actions
+        — <a href="https://github.com/Minelli-D/ai-news-radar">source on GitHub</a></p>
+      <p id="shortcuts" class="shortcuts" hidden></p>
+      <p class="fineprint">Headlines and short descriptions link to the original articles.
+        No cookies, no trackers.</p>
+    </div>
+  </footer>
+</body>
+</html>

@@ -46,6 +46,22 @@ uv venv --python 3.12 .venv && uv pip install --python .venv/bin/python -r requi
 
 `tests/conftest.py` blocks every non-loopback socket, so a test that touches the network fails.
 
+Site (`site/`): vanilla HTML/CSS/ES modules, no build step, no cookies, trackers or storage.
+
+```bash
+node --test tests/site/                                       # unit tests for site/assets/lib.mjs
+.venv/bin/python scripts/run_local.py --out build/preview && cp -r site/. build/preview/ \
+  && python3 -m http.server 8000 -d build/preview             # local preview with live data
+```
+
+- `lib.mjs` holds the pure logic (tested); `app.mjs` does DOM wiring only, and all data goes
+  through `textContent` / `safeHttpUrl`, never `innerHTML`. Each page sets a strict CSP `<meta>`
+  (no inline script or style), because CloudFront only adds the managed security headers.
+- Filters and `/latest/*` shortcuts are generated from `news.json` → `sources`, so a new source
+  needs no frontend change except a `.badge--<slug>` colour (white text must stay ≥ 4.5:1).
+- `?v=dev` on asset URLs (including the `lib.mjs` import) is replaced with the git SHA at deploy
+  time, so long-cached assets refresh.
+
 Terraform 1.16.4 lives in `.tools/terraform` (git-ignored, verified against HashiCorp's GPG
 signature). Local checks without credentials:
 
