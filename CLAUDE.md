@@ -63,6 +63,20 @@ signature). Local checks without credentials:
   log group (`/aws/lambda/…`), schedule, SNS topic and alarm prefixed `ai-news-radar-app-`. Every
   IAM role in `infra/` must set `permissions_boundary` to `ai-news-radar-workload-boundary`, or
   the deploy role cannot create it.
+- `infra/` (S3 backend, key `infra/terraform.tfstate`, `use_lockfile = true`; the bucket and
+  Region are passed with `-backend-config` because the bucket name contains the account ID):
+  DynamoDB provisioned 5/5 + TTL, private site bucket + CloudFront with OAC (AWS-managed
+  cache and header policies only, so it stays compatible with the flat-rate Free plan), Lambda
+  (`build/collector.zip` from `scripts/build_lambda.py`, JSON logging, async retries 0),
+  EventBridge Scheduler (hourly), SNS email + Errors alarm.
+- The collector's IAM policy allows `s3:PutObject` only on `news.json`, `feed.xml` and
+  `latest/*`, and `s3:ListBucket` so that a missing `news.json` (first run) returns 404 instead of 403.
+
+```bash
+.venv/bin/python scripts/build_lambda.py        # reproducible zip (same sha256 for the same inputs)
+AWS_PROFILE=awsnew .tools/terraform -chdir=infra init -backend-config="bucket=<state_bucket>" -backend-config="region=eu-north-1"
+AWS_PROFILE=awsnew .tools/terraform -chdir=infra plan   # read-only; never apply without the owner's OK
+```
 
 ## Architecture
 

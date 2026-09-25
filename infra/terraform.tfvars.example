@@ -1,0 +1,9 @@
+# Copy to terraform.tfvars (git-ignored). In CI the value comes from the ALERT_EMAIL secret.
+alert_email = "you@example.com"
+
+# Defaults, override if needed:
+# region              = "eu-north-1"
+# github_repository   = "Minelli-D/ai-news-radar"
+# lambda_zip_path     = "../build/collector.zip"
+# schedule_expression = "rate(1 hour)"
+# log_retention_days  = 7
