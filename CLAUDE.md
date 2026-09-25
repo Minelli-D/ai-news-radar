@@ -46,6 +46,24 @@ uv venv --python 3.12 .venv && uv pip install --python .venv/bin/python -r requi
 
 `tests/conftest.py` blocks every non-loopback socket, so a test that touches the network fails.
 
+Terraform 1.16.4 lives in `.tools/terraform` (git-ignored, verified against HashiCorp's GPG
+signature). Local checks without credentials:
+
+```bash
+.tools/terraform -chdir=bootstrap fmt -check -recursive
+.tools/terraform -chdir=bootstrap init -backend=false && .tools/terraform -chdir=bootstrap validate
+```
+
+### Terraform stacks
+
+- `bootstrap/` (local state, run once by the owner): state bucket, GitHub OIDC provider, CI
+  roles, permissions boundary, $5 budget (credits excluded), account-level S3 Block Public Access.
+- The CI roles are scoped to fixed names, and `infra/` must use them: table `ai-news-items`,
+  bucket `ai-news-radar-site-<account id>`, state key prefix `infra/`, and every function, role,
+  log group (`/aws/lambda/…`), schedule, SNS topic and alarm prefixed `ai-news-radar-app-`. Every
+  IAM role in `infra/` must set `permissions_boundary` to `ai-news-radar-workload-boundary`, or
+  the deploy role cannot create it.
+
 ## Architecture
 
 EventBridge Scheduler (hourly) → Lambda `collector.handler.lambda_handler` → DynamoDB + S3 →
