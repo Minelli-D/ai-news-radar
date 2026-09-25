@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?><rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
+    <channel>
+        <title><![CDATA[OpenAI News]]></title>
+        <description><![CDATA[The OpenAI blog]]></description>
+        <link>https://openai.com/news</link>
+        <image>
+            <url>https://openai.com/apple-icon.png</url>
+            <title>OpenAI News</title>
+            <link>https://openai.com/news</link>
+        </image>
+        <generator>OpenAI</generator>
+        <lastBuildDate>Fri, 25 Sep 2026 12:54:23 GMT</lastBuildDate>
+        <atom:link href="https://openai.com/news/rss.xml" rel="self" type="application/rss+xml"/>
+        <item>
+            <title><![CDATA[Two years of OpenAI Academy]]></title>
+            <description><![CDATA[Marking two years of OpenAI Academy and bringing AI skills to even more communities.]]></description>
+            <link>https://openai.com/index/two-years-of-openai-academy</link>
+            <guid isPermaLink="true">https://openai.com/index/two-years-of-openai-academy</guid>
+            <category><![CDATA[Company]]></category>
+            <pubDate>Wed, 23 Sep 2026 16:00:00 GMT</pubDate>
+        </item>
+<item>
+            <title><![CDATA[OpenAI extends cyber access to Ukraine for civilian defense]]></title>
+            <description><![CDATA[OpenAI is extending access to its Daybreak program to the Government of Ukraine to support the cyber defense of civilian infrastructure.]]></description>
+            <link>https://openai.com/index/openai-extends-cyber-access-to-ukraine-for-civilian-defense</link>
+            <guid isPermaLink="true">https://openai.com/index/openai-extends-cyber-access-to-ukraine-for-civilian-defense</guid>
+            <category><![CDATA[Global Affairs]]></category>
+            <pubDate>Wed, 23 Sep 2026 13:00:00 GMT</pubDate>
+        </item>
+<item>
+            <title><![CDATA[Sam Altman’s remarks at the United Nations Security Council]]></title>
+            <description><![CDATA[OpenAI CEO Sam Altman discusses AI safety, human control, and international cooperation in remarks to the United Nations Security Council.]]></description>
+            <link>https://openai.com/index/sam-altman-un-security-council-remarks</link>
+            <guid isPermaLink="true">https://openai.com/index/sam-altman-un-security-council-remarks</guid>
+            <category><![CDATA[Global Affairs]]></category>
+            <pubDate>Wed, 23 Sep 2026 12:00:00 GMT</pubDate>
+        </item>
+<item>
+            <title><![CDATA[Harvey turns legal context into stronger drafts with GPT-6 Astra]]></title>
+            <description><![CDATA[GPT-6 Astra produces more structured, context-aware legal documents, freeing lawyers to focus on strategy.]]></description>
+            <link>https://openai.com/index/harvey-from-context-to-confidence-with-astra</link>
+            <guid isPermaLink="true">https://openai.com/index/harvey-from-context-to-confidence-with-astra</guid>
+            <category><![CDATA[Startup]]></category>
+            <pubDate>Wed, 23 Sep 2026 12:00:00 GMT</pubDate>
+        </item>
+<item>
+            <title><![CDATA[How invideo improves color grading 3x with GPT‑6 Astra]]></title>
+            <description><![CDATA[With GPT‑6 Astra, invideo plans edits with greater precision, improves color correction and grading threefold, and produces 50 custom effects in one day.]]></description>
+            <link>https://openai.com/index/invideo-builds-with-gpt-6-astra</link>
+            <guid isPermaLink="true">https://openai.com/index/invideo-builds-with-gpt-6-astra</guid>
+            <pubDate>Wed, 23 Sep 2026 12:00:00 GMT</pubDate>
+        </item>
+<item>
+            <title><![CDATA[Ringg’s AI agents resolve up to 65% of customer calls with OpenAI]]></title>
+            <description><![CDATA[Using GPT-5.6, Ringg powers multilingual agents across voice, chat, WhatsApp, and web for 90% less cost vs. GPT-4.1.]]></description>
+            <link>https://openai.com/index/ringg</link>
+            <guid isPermaLink="true">https://openai.com/index/ringg</guid>
+            <pubDate>Wed, 23 Sep 2026 12:00:00 GMT</pubDate>
+        </item>
+<item>
+            <title><![CDATA[Introducing MentalHealthBench]]></title>
+            <description><![CDATA[MentalHealthBench is an expert-informed benchmark for evaluating helpful and safe AI responses across realistic mental health conversations.]]></description>
+            <link>https://openai.com/index/introducing-mentalhealthbench</link>
+            <guid isPermaLink="true">https://openai.com/index/introducing-mentalhealthbench</guid>
+            <category><![CDATA[Publication]]></category>
+            <pubDate>Wed, 23 Sep 2026 10:00:00 GMT</pubDate>
+        </item>
+<item>
+            <title><![CDATA[ChatGPT Ads expands to Southeast Asia and Taiwan]]></title>
+            <description><![CDATA[ChatGPT Ads is expanding to Southeast Asia and Taiwan, giving eligible businesses new ways to reach people across more than 60 countries.]]></description>
+            <link>https://openai.com/index/chatgpt-ads-expands-southeast-asia-taiwan</link>
+            <guid isPermaLink="true">https://openai.com/index/chatgpt-ads-expands-southeast-asia-taiwan</guid>
+            <category><![CDATA[Product]]></category>
+            <pubDate>Wed, 23 Sep 2026 02:00:00 GMT</pubDate>
+        </item>
+    </channel>
+</rss>

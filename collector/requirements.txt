@@ -1,0 +1,8 @@
+# Runtime dependencies bundled into the Lambda zip (all pure-Python wheels).
+# boto3 is NOT listed: the python3.12 Lambda runtime already provides it.
+beautifulsoup4==4.15.0
+feedparser==6.0.14
+feedparser-sgmllib==2.1.0
+protego==0.7.0
+soupsieve==2.10
+typing-extensions==4.16.0
