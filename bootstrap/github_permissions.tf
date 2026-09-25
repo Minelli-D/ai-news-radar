@@ -146,9 +146,25 @@ data "aws_iam_policy_document" "github_deploy_storage" {
   }
 
   statement {
-    sid       = "ManageSiteBucket"
-    actions   = ["s3:*"]
-    resources = [local.arn.site_bucket, "${local.arn.site_bucket}/*"]
+    sid = "ManageSiteBucket"
+    actions = [
+      "s3:CreateBucket",
+      "s3:DeleteBucket",
+      "s3:DeleteBucketOwnershipControls",
+      "s3:DeleteBucketPolicy",
+      "s3:PutBucketOwnershipControls",
+      "s3:PutBucketPolicy",
+      "s3:PutBucketPublicAccessBlock",
+      "s3:PutBucketTagging",
+      "s3:PutEncryptionConfiguration",
+    ]
+    resources = [local.arn.site_bucket]
+  }
+
+  statement {
+    sid       = "SyncSiteObjects"
+    actions   = ["s3:DeleteObject", "s3:GetObject", "s3:PutObject"]
+    resources = ["${local.arn.site_bucket}/*"]
   }
 
   statement {
@@ -166,6 +182,9 @@ data "aws_iam_policy_document" "github_deploy_storage" {
   }
 }
 
+# PassRole is required to create the Lambda and the schedule; it is limited to the app roles
+# (which carry the boundary) and to the Lambda and Scheduler services.
+#trivy:ignore:AWS-0342
 data "aws_iam_policy_document" "github_deploy_compute" {
   statement {
     sid = "ManageCollectorFunction"

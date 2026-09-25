@@ -1,6 +1,8 @@
 # EventBridge Scheduler (hourly) -> Lambda "collector": Python 3.12, arm64, 256 MB, 60 s,
 # no VPC (no NAT Gateway, no public IPv4 charges), no reserved or provisioned concurrency.
 
+# CloudWatch Logs are encrypted at rest by default; a customer-managed key would cost money.
+#trivy:ignore:AWS-0017
 resource "aws_cloudwatch_log_group" "collector" {
   name              = "/aws/lambda/${local.function_name}"
   retention_in_days = var.log_retention_days
@@ -68,6 +70,8 @@ resource "aws_iam_role_policy" "collector" {
   policy = data.aws_iam_policy_document.collector.json
 }
 
+# X-Ray tracing is not needed for one hourly batch job; the JSON summary line covers it.
+#trivy:ignore:AWS-0066
 resource "aws_lambda_function" "collector" {
   function_name    = local.function_name
   description      = "Collects AI news and publishes news.json, feed.xml and latest/*"

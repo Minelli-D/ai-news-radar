@@ -1,6 +1,8 @@
 # Remote state for infra/: versioned, SSE-S3 encrypted, private, TLS-only.
 # Locking uses S3-native lock files (use_lockfile = true), so no DynamoDB lock table.
 
+# Access logging would add a second bucket and storage costs for a single-user state bucket.
+#trivy:ignore:AWS-0089
 resource "aws_s3_bucket" "state" {
   bucket = local.state_bucket
 
@@ -17,6 +19,8 @@ resource "aws_s3_bucket_versioning" "state" {
   }
 }
 
+# SSE-S3 encrypts at rest for free; a customer-managed KMS key would cost $1/month.
+#trivy:ignore:AWS-0132
 resource "aws_s3_bucket_server_side_encryption_configuration" "state" {
   bucket = aws_s3_bucket.state.id
 

@@ -1,5 +1,8 @@
 # One partition per source; items sorted by "<publishedAt>#<sha256(url)>".
 # The collector only ever Queries one partition (newest first, Limit 20): no Scan, no GSI.
+# Encrypted at rest with the free AWS-owned key; PITR is off (paid, and the data is rebuildable).
+#trivy:ignore:AWS-0024
+#trivy:ignore:AWS-0025
 resource "aws_dynamodb_table" "news" {
   name = local.table_name
 

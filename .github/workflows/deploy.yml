@@ -1,0 +1,91 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Two applies must never run at the same time; queued deploys wait instead of being cancelled.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  checks:
+    uses: ./.github/workflows/checks.yml
+
+  deploy:
+    name: Deploy to AWS
+    needs: checks
+    runs-on: ubuntu-24.04
+    # No GitHub "environment" on purpose: it would change the OIDC subject away from
+    # refs/heads/main, which is the only subject the deploy role trusts.
+    permissions:
+      contents: read # checkout
+      id-token: write # OIDC -> the "deploy" role (trusted only for refs/heads/main)
+    env:
+      TF_IN_AUTOMATION: "1"
+      TF_VAR_alert_email: ${{ secrets.ALERT_EMAIL }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Build the Lambda package (arm64, Python 3.12)
+        run: python scripts/build_lambda.py
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          role-session-name: gha-deploy-${{ github.run_id }}
+          aws-region: ${{ vars.AWS_REGION }}
+          mask-aws-account-id: true
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: 1.16.4
+          terraform_wrapper: false
+      - name: terraform init
+        env:
+          STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+          REGION: ${{ vars.AWS_REGION }}
+        run: >-
+          terraform -chdir=infra init -input=false
+          -backend-config="bucket=${STATE_BUCKET}" -backend-config="region=${REGION}"
+      - name: terraform apply
+        run: terraform -chdir=infra apply -input=false -auto-approve -no-color
+      - name: Read stack outputs
+        id: stack
+        run: |
+          {
+            echo "bucket=$(terraform -chdir=infra output -raw site_bucket)"
+            echo "distribution=$(terraform -chdir=infra output -raw cloudfront_distribution_id)"
+            echo "function=$(terraform -chdir=infra output -raw collector_function_name)"
+            echo "url=$(terraform -chdir=infra output -raw site_url)"
+          } >> "$GITHUB_OUTPUT"
+      - name: Upload the site
+        env:
+          BUCKET: ${{ steps.stack.outputs.bucket }}
+        run: scripts/deploy_site.sh "$BUCKET" "${GITHUB_SHA::12}"
+      - name: Run the collector once (so a first deploy has data)
+        env:
+          FUNCTION: ${{ steps.stack.outputs.function }}
+        run: scripts/invoke_collector.sh "$FUNCTION"
+      - name: Invalidate CloudFront (the single "/*" path of this deploy)
+        env:
+          DISTRIBUTION: ${{ steps.stack.outputs.distribution }}
+        run: |
+          id="$(aws cloudfront create-invalidation --distribution-id "$DISTRIBUTION" \
+            --paths "/*" --query Invalidation.Id --output text)"
+          aws cloudfront wait invalidation-completed --distribution-id "$DISTRIBUTION" --id "$id"
+      - name: Smoke tests
+        env:
+          SITE_URL: ${{ steps.stack.outputs.url }}
+        run: scripts/smoke_test.sh "$SITE_URL"
+      - name: Summary
+        env:
+          SITE_URL: ${{ steps.stack.outputs.url }}
+        run: echo "### Deployed ${GITHUB_SHA::7} to ${SITE_URL}" >> "$GITHUB_STEP_SUMMARY"

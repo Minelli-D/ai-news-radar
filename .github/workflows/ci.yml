@@ -1,0 +1,96 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    uses: ./.github/workflows/checks.yml
+
+  plan:
+    name: Terraform plan (infra/)
+    needs: checks
+    # Pull requests from forks get no OIDC token and must never touch AWS.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write # OIDC -> the read-only "plan" role (trusted only for pull_request)
+      pull-requests: write # post the plan as a comment
+    env:
+      TF_IN_AUTOMATION: "1"
+      TF_VAR_alert_email: ${{ secrets.ALERT_EMAIL }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Build the Lambda package (plan hashes it)
+        run: python scripts/build_lambda.py
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_PLAN_ROLE_ARN }}
+          role-session-name: gha-plan-${{ github.run_id }}
+          aws-region: ${{ vars.AWS_REGION }}
+          mask-aws-account-id: true
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: 1.16.4
+          terraform_wrapper: false
+      - name: terraform init
+        env:
+          STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+          REGION: ${{ vars.AWS_REGION }}
+        run: >-
+          terraform -chdir=infra init -input=false
+          -backend-config="bucket=${STATE_BUCKET}" -backend-config="region=${REGION}"
+      - name: terraform plan
+        run: |
+          # Read-only role: no state lock (a PR plan must never block a deploy).
+          terraform -chdir=infra plan -input=false -lock=false -no-color -out=tfplan
+          terraform -chdir=infra show -no-color tfplan > plan.txt
+          account_id="$(aws sts get-caller-identity --query Account --output text)"
+          sed -i "s/${account_id}/<account-id>/g" plan.txt
+      - name: Post the plan to the pull request
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const fs = require("fs");
+            const marker = "<!-- ai-news-radar:terraform-plan -->";
+            let plan = fs.readFileSync("plan.txt", "utf8");
+            const limit = 60000;
+            if (plan.length > limit) plan = `${plan.slice(0, limit)}\n… truncated, see the workflow log`;
+            const summary = (plan.match(/^(Plan: .*|No changes\..*)$/m) || ["See the plan below"])[0];
+            const body = [
+              marker,
+              "### Terraform plan: `infra/`",
+              `**${summary}**`,
+              "",
+              "<details><summary>Show plan</summary>",
+              "",
+              "```terraform",
+              plan,
+              "```",
+              "</details>",
+              "",
+              `_Commit ${context.payload.pull_request.head.sha.slice(0, 7)} · run ${context.runId}_`,
+            ].join("\n");
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number });
+            const previous = comments.find((c) => c.user.type === "Bot" && c.body.includes(marker));
+            if (previous) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: previous.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }

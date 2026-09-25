@@ -160,3 +160,29 @@ Each module exposes `fetch(client) -> list[NewsItem]` and a `SOURCE` registered 
 Adding a source: new module with `SOURCE(..., allowed_hosts=...)` + trimmed real fixture in
 `tests/fixtures/` (record provenance in its README) + adapter test (including the
 allowed-hosts check) + registry entry + a `.badge--<slug>` colour in `site/assets/style.css`.
+
+## CI/CD (`.github/workflows/`)
+
+- `checks.yml` (reusable, no AWS): ruff/mypy/pytest, `node --test`, terraform fmt/validate,
+  TFLint, Trivy IaC scan (every severity; exceptions are `#trivy:ignore:AWS-xxxx` comments with
+  the reason next to the resource) and a Trivy dependency scan of both requirements files.
+  Trivy and TFLint are installed from release archives verified against SHA-256 values pinned in
+  the workflow, not through setup actions. Every third-party action is pinned to a commit SHA.
+- `ci.yml` (pull_request): checks + `terraform plan -lock=false` with the read-only plan role,
+  posted and updated as one PR comment with the account ID redacted. Fork PRs skip the plan.
+- `deploy.yml` (push to main, concurrency group `deploy-production`): checks → build zip →
+  apply → `scripts/deploy_site.sh` → `scripts/invoke_collector.sh` → one `/*` invalidation →
+  `scripts/smoke_test.sh`. The deploy job must not use a GitHub environment (it would change the
+  OIDC `sub` the deploy role trusts).
+- Repository settings needed: variables `AWS_REGION`, `AWS_PLAN_ROLE_ARN`,
+  `AWS_DEPLOY_ROLE_ARN`, `TF_STATE_BUCKET` (from `terraform -chdir=bootstrap output`) and the
+  secret `ALERT_EMAIL`.
+
+Local equivalents (tools in `.tools/`, verified the same way):
+
+```bash
+.tools/trivy config --exit-code 1 --skip-dirs .tools --skip-dirs .venv --skip-dirs build .
+.tools/tflint --init --config "$PWD/.tflint.hcl" && .tools/tflint --chdir=infra --config "$PWD/.tflint.hcl"
+.tools/actionlint                                   # workflows
+uvx --from shellcheck-py shellcheck scripts/*.sh    # shell scripts
+```

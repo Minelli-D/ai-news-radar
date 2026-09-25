@@ -3,6 +3,7 @@
 # The topic uses no server-side encryption on purpose: CloudWatch alarms cannot publish to a
 # topic encrypted with the AWS-managed aws/sns key, and customer-managed KMS keys cost money.
 
+#trivy:ignore:AWS-0095
 resource "aws_sns_topic" "alerts" {
   name = "${local.app}-alerts"
 }

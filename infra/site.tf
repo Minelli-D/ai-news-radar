@@ -1,5 +1,9 @@
 # Private bucket: no static website hosting, no public access. Only CloudFront (via Origin
 # Access Control) can read it; the collector writes its data files, the pipeline syncs site/.
+# Content is rebuilt from git (site/) and by the collector (data files), so versioning and
+# access logging would only add storage costs.
+#trivy:ignore:AWS-0089
+#trivy:ignore:AWS-0090
 resource "aws_s3_bucket" "site" {
   bucket = local.site_bucket
 }
@@ -21,6 +25,8 @@ resource "aws_s3_bucket_ownership_controls" "site" {
   }
 }
 
+# SSE-S3 is free; a customer-managed KMS key would cost $1/month for public data.
+#trivy:ignore:AWS-0132
 resource "aws_s3_bucket_server_side_encryption_configuration" "site" {
   bucket = aws_s3_bucket.site.id
 

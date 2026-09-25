@@ -1,0 +1,99 @@
+# Static checks shared by ci.yml (pull requests) and deploy.yml (main). No AWS access.
+name: Checks
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+env:
+  TERRAFORM_VERSION: 1.16.4
+  # Scanners are installed from their release archives and verified against these checksums
+  # instead of third-party setup actions (see the March 2026 trivy-action/setup-trivy compromise).
+  TRIVY_VERSION: 0.74.0
+  TRIVY_SHA256: 2ae6fe3ee734b7fdf11335663e18c75ea12dccc76062f09f164a3b0f8be4371a
+  TFLINT_VERSION: 0.64.0
+  TFLINT_SHA256: cca9d13e2e1d7a2c627af60ff899a3c9b74212899416aeb96ec764d2ef954537
+
+jobs:
+  python:
+    name: Python (ruff, mypy, pytest)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            requirements-dev.txt
+            collector/requirements.txt
+      - run: python -m pip install -r requirements-dev.txt
+      - run: ruff check .
+      - run: ruff format --check .
+      - run: mypy
+      - run: pytest
+
+  site:
+    name: Site (node --test)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: node --version && node --test tests/site/
+
+  terraform:
+    name: Terraform (fmt, validate, tflint)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+      - run: terraform fmt -check -recursive
+      - name: terraform validate
+        run: |
+          for stack in bootstrap infra; do
+            terraform -chdir="$stack" init -backend=false -input=false
+            terraform -chdir="$stack" validate
+          done
+      - name: Install TFLint (pinned release + checksum)
+        run: |
+          curl -fsSLo tflint.zip "https://github.com/terraform-linters/tflint/releases/download/v${TFLINT_VERSION}/tflint_linux_amd64.zip"
+          echo "${TFLINT_SHA256}  tflint.zip" | sha256sum -c -
+          unzip -q tflint.zip tflint && sudo install -m 0755 tflint /usr/local/bin/tflint && rm tflint tflint.zip
+      - name: tflint
+        env:
+          GITHUB_TOKEN: ${{ github.token }} # plugin download from GitHub releases (rate limit)
+        run: |
+          tflint --init --config "$GITHUB_WORKSPACE/.tflint.hcl"
+          for stack in bootstrap infra; do
+            tflint --chdir="$stack" --config "$GITHUB_WORKSPACE/.tflint.hcl"
+          done
+
+  security:
+    name: Security (Trivy IaC + dependencies)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install Trivy (pinned release + checksum)
+        run: |
+          curl -fsSLo trivy.tar.gz "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
+          echo "${TRIVY_SHA256}  trivy.tar.gz" | sha256sum -c -
+          tar -xzf trivy.tar.gz trivy && sudo install -m 0755 trivy /usr/local/bin/trivy && rm trivy trivy.tar.gz
+          trivy --version
+      - name: IaC misconfigurations (every severity; exceptions are documented inline)
+        run: trivy config --exit-code 1 .
+      - name: Vulnerable Python dependencies
+        run: >-
+          trivy fs --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1
+          --file-patterns 'pip:requirements-dev\.txt' .

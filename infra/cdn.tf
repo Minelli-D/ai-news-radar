@@ -25,6 +25,10 @@ data "aws_cloudfront_response_headers_policy" "cors_and_security" {
   name = "Managed-CORS-and-SecurityHeadersPolicy"
 }
 
+# No paid WAF web ACL (cost rule). Standard logs would need a log bucket and storage; the
+# collector's logs and CloudFront's free metrics are enough for a static portfolio site.
+#trivy:ignore:AWS-0010
+#trivy:ignore:AWS-0011
 resource "aws_cloudfront_distribution" "site" {
   enabled             = true
   comment             = "AI News Radar"
