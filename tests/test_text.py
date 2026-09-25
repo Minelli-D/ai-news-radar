@@ -1,6 +1,6 @@
 import pytest
 
-from collector.text import clean_text, truncate
+from collector.text import html_to_text, normalize_text, truncate
 
 
 @pytest.mark.parametrize(
@@ -10,11 +10,29 @@ from collector.text import clean_text, truncate
         ("AT&amp;T &lt;rocks&gt;", "AT&T <rocks>"),
         ("  spaced\t\tout \n text ", "spaced out text"),
         ("x < y and y > z", "x < y and y > z"),
+        ("<p>a\x01b</p>", "ab"),
         ("", ""),
     ],
 )
-def test_clean_text_strips_markup_entities_and_whitespace(raw: str, expected: str) -> None:
-    assert clean_text(raw) == expected
+def test_html_to_text_strips_markup_entities_and_whitespace(raw: str, expected: str) -> None:
+    assert html_to_text(raw) == expected
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        # plain text: angle brackets and entity-looking text are content, not markup
+        ("Why <thinking> tags help Claude", "Why <thinking> tags help Claude"),
+        ("AT&amp;T", "AT&amp;T"),
+        ("  a\tb \n c\x0b d ", "a b c d"),
+        # C0/C1 controls, lone surrogates and non-characters break XML or UTF-8 encoding
+        ("bad\x00\x08char\x1fs\x7f\x85", "badchars"),
+        ("emoji half \ud83d gone", "emoji half gone"),
+        ("￾oops￿", "oops"),
+    ],
+)
+def test_normalize_text_keeps_content_and_drops_unsafe_characters(raw: str, expected: str) -> None:
+    assert normalize_text(raw) == expected
 
 
 def test_truncate_keeps_short_text() -> None:

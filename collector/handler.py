@@ -5,6 +5,8 @@ The invocation fails (-> CloudWatch alarm) on infrastructure errors or when ever
 failed; a single failing source is only reported in the log line and in news.json.
 """
 
+import functools
+import json
 import logging
 import os
 import time
@@ -39,6 +41,12 @@ class CollectorError(RuntimeError):
     pass
 
 
+@functools.cache
+def _aws_clients() -> tuple[Any, Any]:
+    """Created once per Lambda container, reused by warm invocations (thread-safe clients)."""
+    return boto3.client("dynamodb", config=_DYNAMODB_CONFIG), boto3.client("s3", config=_S3_CONFIG)
+
+
 def _required_env(name: str) -> str:
     value = os.environ.get(name, "").strip()
     if not value:
@@ -51,18 +59,25 @@ def lambda_handler(event: Any, context: Any) -> dict[str, Any]:
     bucket = _required_env("BUCKET_NAME")
     site_url = _required_env("SITE_URL")
     remaining = context.get_remaining_time_in_millis() / 1000 if context else 60.0
+    dynamodb, s3 = _aws_clients()
 
     report = run(
         SOURCES,
-        repo=DynamoRepository(boto3.client("dynamodb", config=_DYNAMODB_CONFIG), table),
-        publisher=S3Publisher(boto3.client("s3", config=_S3_CONFIG), bucket),
+        repo=DynamoRepository(dynamodb, table),
+        publisher=S3Publisher(s3, bucket),
         client_factory=lambda: HttpClient(USER_AGENT),
         site_url=site_url,
         now=utcnow(),
         deadline=time.monotonic() + remaining - SAFETY_MARGIN,
     )
     summary = report.summary()
-    LOGGER.info("collector run finished", extra={"run": summary})
+    # The JSON is in the message (readable with any Lambda log format) and in `extra`
+    # (a queryable "run" field with the JSON log format that infra/ configures).
+    LOGGER.info(
+        "collector run finished %s",
+        json.dumps(summary, separators=(",", ":")),
+        extra={"run": summary},
+    )
     if report.all_failed:
         raise CollectorError(f"every source failed: {summary['failed']}")
     return summary

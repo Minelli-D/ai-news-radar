@@ -7,12 +7,14 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time
 from typing import Any
+from urllib.parse import urlsplit
 
 import feedparser
 
 from collector.config import USER_AGENT
 from collector.http import Fetcher, HttpClient
 from collector.models import NewsItem, make_item
+from collector.text import html_to_text, normalize_text
 
 
 class ParseError(Exception):
@@ -26,6 +28,7 @@ _MEDIA_TEXT_RE = re.compile(
     rb"<media:(?:title|description)\b[^>]*/>|<media:(title|description)\b[^>]*>.*?</media:\1\s*>",
     re.S,
 )
+_HTML_TYPES = frozenset({"text/html", "application/xhtml+xml"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -34,6 +37,19 @@ class Source:
     name: str
     homepage: str
     fetch: Callable[[Fetcher], list[NewsItem]]
+    # Links are only published if they use HTTPS and point to one of these hosts (or a
+    # subdomain), so a compromised feed cannot turn /latest/<slug> into a phishing redirect.
+    allowed_hosts: tuple[str, ...]
+
+    def allows(self, url: str) -> bool:
+        try:
+            parts = urlsplit(url)
+        except ValueError:
+            return False
+        host = (parts.hostname or "").lower()
+        return parts.scheme == "https" and any(
+            host == allowed or host.endswith(f".{allowed}") for allowed in self.allowed_hosts
+        )
 
 
 def default_client() -> HttpClient:
@@ -50,25 +66,43 @@ def _entry_date(entry: Any) -> datetime | None:
     return datetime.fromtimestamp(calendar.timegm(parsed), tz=UTC) if parsed else None
 
 
+def _text(entry: Any, field: str) -> str:
+    """A feed field as plain text: HTML-typed values are stripped, plain text is kept as is."""
+    value = entry.get(field) or ""
+    content_type = (entry.get(f"{field}_detail") or {}).get("type", "text/plain")
+    return html_to_text(value) if content_type in _HTML_TYPES else normalize_text(value)
+
+
 def parse_feed(
-    content: bytes, source: str, keep: Callable[[Any], bool] | None = None
+    content: bytes,
+    source: str,
+    feed_url: str,
+    keep: Callable[[Any], bool] | None = None,
 ) -> list[NewsItem]:
     """Parse RSS/Atom bytes into NewsItems. `keep` optionally filters raw feedparser entries."""
-    # A stream (not bytes) guarantees feedparser never treats the body as a URL or file name.
-    parsed = feedparser.parse(io.BytesIO(_MEDIA_TEXT_RE.sub(b"", content)))
+    # A stream (not bytes) guarantees feedparser never treats the body as a URL or file name;
+    # content-location lets it resolve relative links against the feed's own URL.
+    parsed = feedparser.parse(
+        io.BytesIO(_MEDIA_TEXT_RE.sub(b"", content)),
+        response_headers={"content-location": feed_url},
+    )
     if not parsed.entries:
         raise ParseError("feed has no entries")
-    items = []
-    for entry in parsed.entries:
-        if keep is not None and not keep(entry):
-            continue
-        item = make_item(
-            source,
-            entry.get("title", ""),
-            entry.get("link", ""),
-            _entry_date(entry),
-            entry.get("summary", ""),
+    kept = [entry for entry in parsed.entries if keep is None or keep(entry)]
+    items = [
+        item
+        for entry in kept
+        if (
+            item := make_item(
+                source,
+                _text(entry, "title"),
+                entry.get("link", ""),
+                _entry_date(entry),
+                _text(entry, "summary"),
+            )
         )
-        if item is not None:
-            items.append(item)
+        is not None
+    ]
+    if kept and not items:
+        raise ParseError(f"feed has {len(kept)} entries but none usable")
     return items

@@ -29,3 +29,10 @@ def test_reads_the_blog_feed_and_truncates_long_descriptions() -> None:
         "systems that plan, execute, and self-correct. Discover how leading enterprises are successfully "
         "navigating…"
     )
+
+
+def test_every_item_is_on_the_sources_allowed_hosts() -> None:
+    items = ainewshub.fetch(FakeHttp({FEED: fixture_bytes("ainewshub_blog_feed.xml")}))
+
+    assert items
+    assert all(ainewshub.SOURCE.allows(item.url) for item in items)

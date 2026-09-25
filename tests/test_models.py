@@ -52,18 +52,26 @@ def test_sort_key_is_iso_date_then_url_hash() -> None:
     )
 
 
-def test_make_item_cleans_title_and_truncates_description() -> None:
+def test_make_item_normalizes_plain_text_and_truncates_description() -> None:
     item = make_item(
         "openai",
-        "  Hello &amp; <b>AI</b>  ",
+        "  Hello   &  AI\n",
         "https://openai.com/index/x",
         NOW,
-        "<p>" + "word " * 100 + "</p>",
+        "word " * 100,
     )
     assert item is not None
     assert item.title == "Hello & AI"
     assert len(item.description) <= 200
     assert item.description.endswith("…")
+
+
+def test_make_item_treats_titles_as_plain_text() -> None:
+    item = make_item(
+        "anthropic", "Why <thinking> tags help\x00 Claude\ud83d", "https://x.com/a", NOW
+    )
+    assert item is not None
+    assert item.title == "Why <thinking> tags help Claude"
 
 
 @pytest.mark.parametrize(
@@ -74,6 +82,13 @@ def test_make_item_cleans_title_and_truncates_description() -> None:
         ("ok", "ftp://example.com/file"),
         ("ok", "/news/relative-link"),
         ("ok", "https:///no-host"),
+        ("ok", "https://[::1/news"),
+        ("ok", "https://example.com:99999/x"),
+        ("ok", "https://example.com:abc/x"),
+        ("ok", "https://exa mple.com/x"),
+        ("ok", "https://example.com/x\x00y"),
+        ("ok", "https://example.com/\ud83d"),
+        ("ok", "https://example.com/" + "a" * 3000),
     ],
 )
 def test_make_item_rejects_missing_title_or_unsafe_url(title: str, url: str) -> None:

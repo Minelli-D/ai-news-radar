@@ -20,11 +20,10 @@ from dataclasses import dataclass
 from datetime import datetime
 from email.utils import format_datetime
 from typing import Any
-from urllib.parse import urlsplit
 
 from botocore.exceptions import ClientError
 
-from collector.models import NewsItem, iso, parse_iso
+from collector.models import NewsItem, is_web_url, iso, parse_iso
 from collector.sources.base import Source
 
 SITE_TITLE = "AI News Radar"
@@ -153,7 +152,9 @@ def render_feed(snapshot: Snapshot, site_url: str) -> bytes:
         _text(node, "pubDate", _rfc822(item["publishedAt"]))
         _text(node, "category", names.get(item["source"], item["source"]))
         if item["description"]:
-            _text(node, "description", item["description"])
+            # RSS readers render <description> as HTML: escape our plain text so markup-looking
+            # text from a third-party source reaches subscribers as text, never as live HTML.
+            _text(node, "description", html.escape(item["description"], quote=False))
     return bytes(ET.tostring(rss, encoding="utf-8", xml_declaration=True))
 
 
@@ -167,11 +168,6 @@ _REDIRECT_CSP = (
 _STATIC_CSP = "default-src 'none'; base-uri 'none'; form-action 'none'"
 
 
-def _is_web_url(url: str) -> bool:
-    parts = urlsplit(url)
-    return parts.scheme in ("http", "https") and bool(parts.hostname)
-
-
 def render_latest_page(source_name: str, item: Mapping[str, str] | None) -> str:
     """Meta refresh + JS redirect + visible link to the source's newest post (no CloudFront
     Function needed). Every value is escaped; only http(s) targets are ever emitted."""
@@ -181,7 +177,7 @@ def render_latest_page(source_name: str, item: Mapping[str, str] | None) -> str:
         '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
         '<meta name="robots" content="noindex">\n'
     )
-    if item is None or not _is_web_url(item.get("url", "")):
+    if item is None or not is_web_url(item.get("url", "")):
         return (
             f'{head}<meta http-equiv="Content-Security-Policy" content="{_STATIC_CSP}">\n'
             f"<title>No posts from {name} yet · {SITE_TITLE}</title>\n</head>\n<body>\n"
@@ -210,17 +206,24 @@ def _newest_for(snapshot: Snapshot | None, slug: str) -> dict[str, str] | None:
 
 
 def plan_objects(snapshot: Snapshot, previous: Snapshot | None, site_url: str) -> list[S3Object]:
-    body = json.dumps(snapshot, ensure_ascii=False, separators=(",", ":")).encode()
-    objects = [S3Object(NEWS_KEY, body, JSON_TYPE)]
+    """The objects to upload, in order. news.json is the baseline the NEXT run compares with,
+    so it comes last: if an earlier upload fails, the next run still sees the change."""
+    objects = []
     rewrite_all = previous is None or previous.get("version") != snapshot["version"]
     previous_feed = (previous or {}).get("items", [])[:FEED_ITEMS]
     if rewrite_all or previous_feed != snapshot["items"][:FEED_ITEMS]:
         objects.append(S3Object("feed.xml", render_feed(snapshot, site_url), RSS_TYPE))
+    previous_slugs = {
+        row.get("slug") for row in (previous or {}).get("sources", []) if isinstance(row, dict)
+    }
     for row in snapshot["sources"]:
         newest = _newest_for(snapshot, row["slug"])
-        if rewrite_all or newest != _newest_for(previous, row["slug"]):
+        changed = newest != _newest_for(previous, row["slug"])
+        if rewrite_all or row["slug"] not in previous_slugs or changed:
             page = render_latest_page(row["name"], newest).encode()
             objects.append(S3Object(f"latest/{row['slug']}", page, HTML_TYPE))
+    body = json.dumps(snapshot, ensure_ascii=False, separators=(",", ":")).encode()
+    objects.append(S3Object(NEWS_KEY, body, JSON_TYPE))
     return objects
 
 

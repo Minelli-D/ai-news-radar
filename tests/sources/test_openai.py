@@ -40,3 +40,10 @@ def test_reads_the_official_news_feed_in_one_request() -> None:
 def test_a_response_without_entries_is_a_parse_error(body: bytes) -> None:
     with pytest.raises(ParseError):
         openai.fetch(FakeHttp({FEED: body}))
+
+
+def test_every_item_is_on_the_sources_allowed_hosts() -> None:
+    items = openai.fetch(FakeHttp({FEED: fixture_bytes("openai_news_rss.xml")}))
+
+    assert items
+    assert all(openai.SOURCE.allows(item.url) for item in items)

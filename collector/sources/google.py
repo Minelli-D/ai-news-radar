@@ -13,7 +13,7 @@ def fetch(client: Fetcher | None = None) -> list[NewsItem]:
     client = client or default_client()
     items: list[NewsItem] = []
     for feed_url in (AI_BLOG_FEED, DEEPMIND_FEED):
-        items.extend(parse_feed(client.get(feed_url), SLUG))
+        items.extend(parse_feed(client.get(feed_url), SLUG, feed_url))
     return items
 
 
@@ -22,4 +22,5 @@ SOURCE = Source(
     name="Google",
     homepage="https://blog.google/innovation-and-ai/technology/ai/",
     fetch=fetch,
+    allowed_hosts=("blog.google", "deepmind.google"),
 )

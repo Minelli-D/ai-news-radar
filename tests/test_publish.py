@@ -35,9 +35,9 @@ def _no_fetch(_client: object) -> list[NewsItem]:
 
 
 SOURCES = [
-    Source("openai", "OpenAI", "https://openai.com/news/", _no_fetch),
-    Source("google", "Google", "https://blog.google/", _no_fetch),
-    Source("deepseek", "DeepSeek", "https://api-docs.deepseek.com/", _no_fetch),
+    Source("openai", "OpenAI", "https://openai.com/news/", _no_fetch, ("example.com",)),
+    Source("google", "Google", "https://blog.google/", _no_fetch, ("example.com",)),
+    Source("deepseek", "DeepSeek", "https://api-docs.deepseek.com/", _no_fetch, ("example.com",)),
 ]
 
 
@@ -193,6 +193,24 @@ def test_feed_escapes_markup_in_titles() -> None:
     assert channel.findall("item")[0].findtext("title") == "AT&T <b>bold</b> news"
 
 
+def test_feed_descriptions_reach_readers_as_text_not_html() -> None:
+    # RSS readers render <description> as HTML: plain text must be HTML-escaped first.
+    items = {
+        "openai": [news("openai", "x", 23, description="<img src=x onerror=alert(1)> & more")],
+        "google": [],
+        "deepseek": [],
+    }
+
+    raw = render_feed(snapshot(items), SITE)
+
+    assert b"&amp;lt;img src=x onerror=alert(1)&amp;gt; &amp;amp; more" in raw
+    channel = ET.fromstring(raw).find("channel")
+    assert channel is not None
+    assert channel.findall("item")[0].findtext("description") == (
+        "&lt;img src=x onerror=alert(1)&gt; &amp; more"
+    )
+
+
 def test_feed_is_capped_at_60_items() -> None:
     many = {
         "openai": [news("openai", str(n), 1 + n % 28) for n in range(70)],
@@ -267,24 +285,33 @@ def keys(objects: list[S3Object]) -> list[str]:
     return [obj.key for obj in objects]
 
 
-def test_first_run_writes_everything_with_content_types() -> None:
+def test_first_run_writes_everything_with_news_json_last() -> None:
+    # news.json is the baseline for change detection: writing it last means a failed upload of
+    # feed.xml or a latest page is retried by the next run instead of being forgotten.
     objects = plan_objects(snapshot(), None, SITE)
 
     assert keys(objects) == [
-        "news.json",
         "feed.xml",
         "latest/openai",
         "latest/google",
         "latest/deepseek",
+        "news.json",
     ]
     assert [obj.content_type for obj in objects] == [
-        "application/json; charset=utf-8",
         "application/rss+xml; charset=utf-8",
         "text/html; charset=utf-8",
         "text/html; charset=utf-8",
         "text/html; charset=utf-8",
+        "application/json; charset=utf-8",
     ]
-    assert json.loads(objects[0].body) == snapshot()
+    assert json.loads(objects[-1].body) == snapshot()
+
+
+def test_a_source_new_since_the_last_run_gets_its_latest_page() -> None:
+    previous = copy.deepcopy(snapshot(generated_at=NOW - timedelta(hours=1)))
+    previous["sources"] = [row for row in previous["sources"] if row["slug"] != "deepseek"]
+
+    assert keys(plan_objects(snapshot(), previous, SITE)) == ["latest/deepseek", "news.json"]
 
 
 def test_unchanged_items_only_refresh_news_json() -> None:
@@ -306,9 +333,9 @@ def test_a_new_post_rewrites_the_feed_and_that_sources_latest_page() -> None:
     }
 
     assert keys(plan_objects(snapshot(items), previous, SITE)) == [
-        "news.json",
         "feed.xml",
         "latest/openai",
+        "news.json",
     ]
 
 

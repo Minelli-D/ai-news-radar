@@ -54,3 +54,10 @@ def test_a_failing_feed_fails_the_whole_source() -> None:
 
     with pytest.raises(FetchError):
         google.fetch(http)
+
+
+def test_every_item_is_on_the_sources_allowed_hosts() -> None:
+    items = google.fetch(fake())
+
+    assert items
+    assert all(google.SOURCE.allows(item.url) for item in items)

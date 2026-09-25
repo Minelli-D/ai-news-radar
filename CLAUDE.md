@@ -103,23 +103,41 @@ CloudFront. `collector/pipeline.py::run` is one run:
 2. Every source is fetched in parallel threads, one `HttpClient` per source (the client is not
    thread-safe). An adapter exception becomes that source's `error` and never affects the other
    sources. A source still running at the deadline is reported as "timed out".
-3. `dedup.select_new` compares canonical-URL SHA-256 hashes, so re-dated or tracking-param URL
-   variants are not new. `enrich.py` fills missing descriptions for new items.
+3. Items whose URL is not HTTPS on the source's `allowed_hosts` (or a subdomain) are dropped,
+   so a compromised feed cannot turn `/latest/<slug>` into a redirect elsewhere.
+   `dedup.select_new` compares canonical-URL SHA-256 hashes, so re-dated or tracking-param URL
+   variants are not new. `enrich.py` (best-effort, `<head>` only) fills missing descriptions
+   for new items.
 4. `repo.put_new` is a conditional PutItem (`attribute_not_exists`). Keys are
    PK `source`, SK `<publishedAt ISO>#<sha256(canonical URL)>`, TTL `expiresAt` = first seen + 120 days.
 5. `publish.py` writes `news.json` every run (its `generatedAt` drives "updated X min ago"), and
    `feed.xml` / `latest/<slug>` only when their content changed versus the previous `news.json`,
-   to keep S3 PUTs low. `RENDER_VERSION` is a hash of `publish.py` itself, so editing a template
-   rewrites every object once.
+   to keep S3 PUTs low. `news.json` is written LAST: it is the baseline the next run compares
+   against, so a failed upload of the other files is retried instead of forgotten.
+   `RENDER_VERSION` is a hash of `publish.py` itself, so editing a template rewrites every object
+   once. Feed `<description>`s are HTML-escaped, because RSS readers render them as HTML.
+
+Text contract: `models.make_item` takes PLAIN text. `text.html_to_text` is only for HTML
+fragments (`base.parse_feed` picks it per field from feedparser's `*_detail.type`), so
+"Why <thinking> tags…" stays intact. Both helpers drop characters that XML or UTF-8 cannot carry.
+`models.is_web_url` never raises: malformed URLs, bad ports, whitespace and URLs over 2048 chars
+are rejected.
+
+Known behaviour: slow sources (DeepSeek, AI News Hub) keep old posts in their newest 20. When TTL
+removes those posts after 120 days they are re-inserted as "new", which is harmless and shows up
+as a spike in the `new` count.
 
 Failure semantics: a source failure only shows in the run's log line (`RunReport.summary()`)
 and in `news.json` → `sources[].ok/error/lastSuccessAt`. The invocation fails (and the CloudWatch
 alarm fires) only on storage/S3 errors or when every source failed.
 
 `collector/http.py`: HTTPS only, robots.txt via `protego` (Python's stdlib parser ignores
-wildcards, which AWS's robots.txt uses), every redirect hop re-validated, gzip decoding with a
-size cap, at most 1 request/s per host. Adapters depend on the `Fetcher` protocol, so tests pass
-`tests/fakes.FakeHttp`.
+wildcards, which AWS's robots.txt uses), matched on the product token `AINewsRadar` (RFC 9309).
+429 or 5xx on robots.txt means the host is skipped for the run. Every redirect hop is
+re-validated. Gzip decoding has a size cap. `read1` keeps the 10 s total timeout even against
+servers that trickle bytes. IRIs are percent-encoded, and any protocol error becomes a
+`FetchError`. At most 1 request/s per host. Adapters depend on the `Fetcher` protocol, so tests
+pass `tests/fakes.FakeHttp`.
 
 ### Sources (`collector/sources/`)
 
@@ -139,5 +157,6 @@ Each module exposes `fetch(client) -> list[NewsItem]` and a `SOURCE` registered 
   (`a.menu__link`, "Title YYYY/MM/DD") lists every announcement. Date-only sources are stored at
   12:00 UTC so the day renders the same in every time zone.
 
-Adding a source: new module + trimmed real fixture in `tests/fixtures/` (record provenance in its
-README) + adapter test + registry entry.
+Adding a source: new module with `SOURCE(..., allowed_hosts=...)` + trimmed real fixture in
+`tests/fixtures/` (record provenance in its README) + adapter test (including the
+allowed-hosts check) + registry entry + a `.badge--<slug>` colour in `site/assets/style.css`.

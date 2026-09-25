@@ -65,3 +65,10 @@ def test_descriptions_are_plain_text_and_short() -> None:
 )
 def test_is_ai_related(title: str, tags: list[str], expected: bool) -> None:
     assert aws.is_ai_related(title, tags) is expected
+
+
+def test_every_item_is_on_the_sources_allowed_hosts() -> None:
+    items = aws.fetch(FakeHttp({FEED: fixture_bytes("aws_whats_new_rss.xml")}))
+
+    assert items
+    assert all(aws.SOURCE.allows(item.url) for item in items)

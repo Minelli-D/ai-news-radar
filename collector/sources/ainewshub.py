@@ -9,9 +9,13 @@ FEED_URL = "https://www.ainewshub.org/blog-feed.xml"
 
 
 def fetch(client: Fetcher | None = None) -> list[NewsItem]:
-    return parse_feed((client or default_client()).get(FEED_URL), SLUG)
+    return parse_feed((client or default_client()).get(FEED_URL), SLUG, FEED_URL)
 
 
 SOURCE = Source(
-    slug=SLUG, name="AI News Hub", homepage="https://www.ainewshub.org/latest-a-i-news", fetch=fetch
+    slug=SLUG,
+    name="AI News Hub",
+    homepage="https://www.ainewshub.org/latest-a-i-news",
+    fetch=fetch,
+    allowed_hosts=("ainewshub.org",),
 )

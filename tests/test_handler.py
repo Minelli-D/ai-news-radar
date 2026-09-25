@@ -1,3 +1,4 @@
+import json
 import logging
 import time
 from typing import Any
@@ -63,7 +64,10 @@ def test_runs_every_source_and_logs_one_summary_line(
     ]
     assert call["site_url"] == "https://d111111abcdef8.cloudfront.net"
     assert 50 < call["deadline"] - time.monotonic() <= 60
-    [record] = [r for r in caplog.records if r.getMessage() == "collector run finished"]
+    [record] = [r for r in caplog.records if r.getMessage().startswith("collector run finished")]
+    assert (
+        json.loads(record.getMessage().removeprefix("collector run finished ")) == report.summary()
+    )
     assert record.run == report.summary()  # type: ignore[attr-defined]
 
 

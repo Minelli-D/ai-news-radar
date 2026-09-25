@@ -1,3 +1,4 @@
+import json
 import re
 from datetime import UTC, datetime
 
@@ -53,3 +54,37 @@ def test_falls_back_to_the_visible_list_without_embedded_data() -> None:
 def test_a_page_without_posts_is_a_parse_error() -> None:
     with pytest.raises(ParseError):
         anthropic.fetch(FakeHttp({NEWS: b"<html><body>Just a moment...</body></html>"}))
+
+
+VISIBLE = '<a href="/news/visible-post"><time>Sep 1, 2026</time><span class="x__title">Visible post</span></a>'
+
+
+def page_with(flight: str, visible: str = "") -> bytes:
+    chunk = json.dumps(flight)[1:-1]  # the JS string literal Next.js would emit
+    return f'<html><body>{visible}<script>self.__next_f.push([1,"{chunk}"])</script></body></html>'.encode()
+
+
+def test_unexpected_embedded_data_shape_falls_back_to_the_visible_list() -> None:
+    flight = '{"posts":[{"_type":"post","slug":"plain-string","title":"Hidden","publishedOn":"2026-09-02T00:00:00Z"}]}'
+
+    items = anthropic.fetch(FakeHttp({NEWS: page_with(flight, VISIBLE)}))
+
+    assert [item.title for item in items] == ["Visible post"]
+
+
+def test_posts_without_a_valid_directory_default_to_news() -> None:
+    flight = (
+        '{"posts":[{"_type":"post","slug":{"current":"a-post"},"title":"A post",'
+        '"publishedOn":"2026-09-02T00:00:00Z","directories":[{"value":null}]}]}'
+    )
+
+    [item] = anthropic.fetch(FakeHttp({NEWS: page_with(flight)}))
+
+    assert item.url == "https://www.anthropic.com/news/a-post"
+
+
+def test_every_item_is_on_the_sources_allowed_hosts() -> None:
+    items = anthropic.fetch(FakeHttp({NEWS: fixture_bytes("anthropic_news.html")}))
+
+    assert items
+    assert all(anthropic.SOURCE.allows(item.url) for item in items)

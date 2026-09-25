@@ -1,5 +1,6 @@
 import gzip
 import threading
+import time
 from collections.abc import Iterator
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -57,6 +58,22 @@ def test_disallowed_path_is_never_requested() -> None:
 def test_group_for_our_product_token_takes_precedence() -> None:
     robots = "User-agent: AINewsRadar\nDisallow: /\n\nUser-agent: *\nAllow: /\n"
     transport = FakeTransport({ROBOTS: ok(robots)})
+
+    with pytest.raises(RobotsDisallowedError):
+        client(transport).get(PAGE)
+
+
+def test_robots_groups_are_matched_on_the_product_token() -> None:
+    # RFC 9309: match the product token, not substrings of the full User-Agent (which contains
+    # "github.com"); a "github" group must not apply to us.
+    robots = "User-agent: github\nDisallow: /\n\nUser-agent: *\nAllow: /\n"
+    transport = FakeTransport({ROBOTS: ok(robots), PAGE: ok("x")})
+
+    assert client(transport).get(PAGE) == b"x"
+
+
+def test_rate_limited_robots_txt_disallows_the_run() -> None:
+    transport = FakeTransport({ROBOTS: status(429)})
 
     with pytest.raises(RobotsDisallowedError):
         client(transport).get(PAGE)
@@ -242,6 +259,22 @@ class _Handler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.end_headers()
             self.wfile.write(b"x" * 100_000)
+        elif self.path.startswith("/echo/"):
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(self.path.encode())
+        elif self.path == "/garbage":
+            self.wfile.write(b"THIS IS NOT HTTP\r\n\r\n")
+        elif self.path == "/slow":
+            self.send_response(200)
+            self.end_headers()
+            try:
+                for _ in range(30):  # one byte every 0.2 s: a 6 s response
+                    self.wfile.write(b"x")
+                    self.wfile.flush()
+                    time.sleep(0.2)
+            except OSError:
+                pass  # the client gave up, as it should
         else:
             self.send_response(404)
             self.end_headers()
@@ -280,3 +313,22 @@ def test_urllib_transport_returns_error_statuses(server: str) -> None:
 def test_urllib_transport_stops_reading_past_limit(server: str) -> None:
     response = urllib_transport(f"{server}/big", {}, 5.0, 1_000)
     assert len(response.body) == 1_001
+
+
+def test_urllib_transport_percent_encodes_non_ascii_urls(server: str) -> None:
+    response = urllib_transport(f"{server}/echo/café news", {}, 5.0, 10_000)
+    assert response.body == b"/echo/caf%C3%A9%20news"
+
+
+def test_urllib_transport_turns_protocol_errors_into_fetch_errors(server: str) -> None:
+    with pytest.raises(FetchError):
+        urllib_transport(f"{server}/garbage", {}, 5.0, 10_000)
+
+
+def test_urllib_transport_enforces_the_total_timeout(server: str) -> None:
+    started = time.monotonic()
+
+    with pytest.raises(FetchError, match="timed out"):
+        urllib_transport(f"{server}/slow", {}, 0.8, 10_000)
+
+    assert time.monotonic() - started < 3.0

@@ -100,7 +100,15 @@ def _collect(
 ) -> _Collected:
     try:
         fetched = source.fetch(client)
-        fresh = select_new(newest(fetched, ITEMS_PER_SOURCE), stored)
+        allowed = [item for item in fetched if source.allows(item.url)]
+        if len(allowed) < len(fetched):
+            LOGGER.warning(
+                "source %s: dropped %d items outside %s or without https",
+                source.slug,
+                len(fetched) - len(allowed),
+                ", ".join(source.allowed_hosts),
+            )
+        fresh = select_new(newest(allowed, ITEMS_PER_SOURCE), stored)
         fresh = enrich(
             fresh,
             client,

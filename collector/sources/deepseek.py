@@ -78,4 +78,10 @@ def _parse_news_page(page: str, page_url: str) -> list[NewsItem]:
     return sorted(items.values(), key=lambda item: item.published_at, reverse=True)
 
 
-SOURCE = Source(slug=SLUG, name="DeepSeek", homepage=f"{BASE_URL}/", fetch=fetch)
+SOURCE = Source(
+    slug=SLUG,
+    name="DeepSeek",
+    homepage=f"{BASE_URL}/",
+    fetch=fetch,
+    allowed_hosts=("deepseek.com",),
+)

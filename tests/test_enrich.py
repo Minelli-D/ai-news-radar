@@ -73,6 +73,35 @@ def test_a_failing_page_leaves_the_description_empty() -> None:
     assert [i.description for i in result] == ["", "second"]
 
 
+def test_any_page_error_leaves_the_description_empty() -> None:
+    # enrichment is best-effort: odd URLs or protocol errors must never fail the source
+    items = [item(1), item(2), item(3)]
+    http = FakeHttp(
+        {
+            items[0].url: ValueError("URL can't contain control characters"),
+            items[1].url: UnicodeEncodeError("ascii", "café", 3, 4, "ordinal not in range"),
+            items[2].url: page("third"),
+        }
+    )
+
+    result = enrich(items, http, limit=3, deadline=100.0, clock=FakeClock())
+
+    assert [i.description for i in result] == ["", "", "third"]
+
+
+def test_description_is_plain_text() -> None:
+    html = '<html><head><meta name="description" content="Why <thinking> tags help"></head></html>'
+    assert extract_description(html) == "Why <thinking> tags help"
+
+
+def test_only_the_head_is_read() -> None:
+    html = (
+        "<html><head><title>x</title></head>"
+        '<body><meta property="og:description" content="from the body"></body></html>'
+    )
+    assert extract_description(html) == ""
+
+
 def test_no_requests_after_the_deadline() -> None:
     clock = FakeClock()
     clock.now = 101.0

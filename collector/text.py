@@ -1,4 +1,4 @@
-"""Turn untrusted feed/page snippets into short plain text."""
+"""Turn untrusted feed/page snippets into short, publishable plain text."""
 
 import html
 import re
@@ -12,17 +12,26 @@ _BLOCK_TAG_RE = re.compile(
     r"\b[^>]*>",
     re.IGNORECASE,
 )
+# Characters that XML 1.0 or UTF-8 cannot carry (C0/C1 controls except whitespace, lone
+# surrogates, non-characters). One of them would make feed.xml invalid or crash encoding.
+_UNSAFE_CHARS_RE = re.compile("[\x00-\x08\x0e-\x1f\x7f-\x9f\ud800-\udfff￾￿]")
 _TRAILING_PUNCTUATION = " ,;:.-–—"
 ELLIPSIS = "…"
 
 
-def clean_text(raw: str) -> str:
-    """Strip markup, decode entities and collapse all whitespace (including NBSP)."""
+def normalize_text(raw: str) -> str:
+    """Plain text: drop unsafe characters and collapse all whitespace. Markup-looking text
+    such as "<thinking>" is content and is kept."""
+    return " ".join(_UNSAFE_CHARS_RE.sub("", raw).split())
+
+
+def html_to_text(raw: str) -> str:
+    """An HTML fragment (feed summaries): strip tags, decode entities, then normalize."""
     if "<" in raw:
         text = BeautifulSoup(_BLOCK_TAG_RE.sub(" ", raw), "html.parser").get_text()
     else:
         text = html.unescape(raw)
-    return " ".join(text.split())
+    return normalize_text(text)
 
 
 def truncate(text: str, limit: int) -> str:

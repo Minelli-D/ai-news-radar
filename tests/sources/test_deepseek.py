@@ -73,3 +73,10 @@ def test_sitemap_without_news_pages_is_a_parse_error() -> None:
 
     with pytest.raises(ParseError):
         deepseek.fetch(FakeHttp({SITEMAP: sitemap}))
+
+
+def test_every_item_is_on_the_sources_allowed_hosts() -> None:
+    items = deepseek.fetch(fake())
+
+    assert items
+    assert all(deepseek.SOURCE.allows(item.url) for item in items)

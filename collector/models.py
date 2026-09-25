@@ -1,14 +1,17 @@
 """The shared NewsItem type and the normalisation every source goes through."""
 
 import hashlib
+import re
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
-from collector.text import clean_text, truncate
+from collector.text import normalize_text, truncate
 
 DESCRIPTION_LIMIT = 200
 TITLE_LIMIT = 300
+MAX_URL_LENGTH = 2048  # also keeps every DynamoDB item far below the 400 KB limit
+_URL_FORBIDDEN_RE = re.compile("[\\s\x00-\x1f\x7f\ud800-\udfff]")
 # Items dated further in the future than this are clamped to "now" (bad feed clocks).
 FUTURE_TOLERANCE = timedelta(hours=1)
 _TRACKING_PARAMS = frozenset({"fbclid", "gclid", "mc_cid", "mc_eid", "ref", "ref_src"})
@@ -61,8 +64,15 @@ class NewsItem:
         return f"{iso(self.published_at)}#{self.url_hash}"
 
 
-def _is_absolute_web_url(url: str) -> bool:
-    parts = urlsplit(url)
+def is_web_url(url: str) -> bool:
+    """An absolute http(s) URL that is safe to hash, store and publish (never raises)."""
+    if len(url) > MAX_URL_LENGTH or _URL_FORBIDDEN_RE.search(url):
+        return False
+    try:
+        parts = urlsplit(url)
+        _ = parts.port  # raises ValueError for a malformed or out-of-range port
+    except ValueError:
+        return False
     return parts.scheme in ("http", "https") and bool(parts.hostname)
 
 
@@ -83,15 +93,16 @@ def make_item(
     published_at: datetime | None,
     description: str = "",
 ) -> NewsItem | None:
-    """Build a clean NewsItem, or return None when the entry is unusable/unsafe."""
-    clean_title = truncate(clean_text(title), TITLE_LIMIT)
+    """Build a clean NewsItem from PLAIN-TEXT title/description (adapters convert HTML first
+    with text.html_to_text), or return None when the entry is unusable or unsafe."""
+    clean_title = truncate(normalize_text(title), TITLE_LIMIT)
     url = url.strip()
-    if not clean_title or not _is_absolute_web_url(url):
+    if not clean_title or not is_web_url(url):
         return None
     return NewsItem(
         source=source,
         title=clean_title,
         url=url,
         published_at=normalize_date(published_at),
-        description=truncate(clean_text(description), DESCRIPTION_LIMIT),
+        description=truncate(normalize_text(description), DESCRIPTION_LIMIT),
     )

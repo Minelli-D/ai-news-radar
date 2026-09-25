@@ -6,6 +6,7 @@ The page is a Next.js app that embeds its CMS data (title, ISO date, summary per
 """
 
 import json
+import logging
 import re
 from datetime import date, datetime
 from typing import Any
@@ -17,6 +18,7 @@ from collector.http import Fetcher
 from collector.models import NewsItem, make_item
 from collector.sources.base import ParseError, Source, at_noon_utc, default_client
 
+LOGGER = logging.getLogger(__name__)
 SLUG = "anthropic"
 BASE_URL = "https://www.anthropic.com"
 NEWS_URL = f"{BASE_URL}/news"
@@ -35,7 +37,12 @@ _MONTHS = {
 
 def fetch(client: Fetcher | None = None) -> list[NewsItem]:
     page = (client or default_client()).get_text(NEWS_URL)
-    items = _from_embedded_data(page) or _from_visible_list(page)
+    try:
+        items = _from_embedded_data(page)
+    except Exception:  # an undocumented format: any surprise means "use the visible list"
+        LOGGER.warning("anthropic: embedded data unreadable, using the visible list", exc_info=True)
+        items = []
+    items = items or _from_visible_list(page)
     if not items:
         raise ParseError("no posts found on the news page")
     return items
@@ -56,13 +63,31 @@ def _embedded_posts(flight: str) -> dict[str, dict[str, Any]]:
             array, _ = decoder.raw_decode(flight, match.end() - 1)
         except json.JSONDecodeError:
             continue
-        for post in array:
+        for post in array if isinstance(array, list) else []:
             if not isinstance(post, dict) or post.get("_type") != "post":
                 continue
-            slug = (post.get("slug") or {}).get("current")
+            slug_field = post.get("slug")
+            slug = slug_field.get("current") if isinstance(slug_field, dict) else None
             if isinstance(slug, str) and _SLUG_RE.match(slug):
                 posts.setdefault(slug, post)
     return posts
+
+
+def _text_field(post: dict[str, Any], key: str) -> str:
+    value = post.get(key)
+    return value if isinstance(value, str) else ""
+
+
+def _directory(post: dict[str, Any]) -> str:
+    """URL directory of a post: "news" unless the CMS only lists another valid one."""
+    entries = post.get("directories")
+    values = [
+        entry.get("value")
+        for entry in (entries if isinstance(entries, list) else [])
+        if isinstance(entry, dict)
+    ]
+    valid = [value for value in values if isinstance(value, str) and _SLUG_RE.match(value)]
+    return "news" if "news" in valid or not valid else valid[0]
 
 
 def _published(post: dict[str, Any]) -> datetime | None:
@@ -75,14 +100,12 @@ def _published(post: dict[str, Any]) -> datetime | None:
 def _from_embedded_data(page: str) -> list[NewsItem]:
     items = []
     for slug, post in _embedded_posts(_flight_data(page)).items():
-        directories = [d.get("value") for d in post.get("directories") or [] if isinstance(d, dict)]
-        directory = "news" if "news" in directories or not directories else directories[0]
         item = make_item(
             SLUG,
-            post.get("title") or "",
-            f"{BASE_URL}/{directory}/{slug}",
+            _text_field(post, "title"),
+            f"{BASE_URL}/{_directory(post)}/{slug}",
             _published(post),
-            post.get("summary") or "",
+            _text_field(post, "summary"),
         )
         if item is not None:
             items.append(item)
@@ -117,4 +140,10 @@ def _from_visible_list(page: str) -> list[NewsItem]:
     return items
 
 
-SOURCE = Source(slug=SLUG, name="Anthropic", homepage=NEWS_URL, fetch=fetch)
+SOURCE = Source(
+    slug=SLUG,
+    name="Anthropic",
+    homepage=NEWS_URL,
+    fetch=fetch,
+    allowed_hosts=("anthropic.com",),
+)

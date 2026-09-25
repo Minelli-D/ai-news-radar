@@ -7,6 +7,7 @@
 Not thread-safe: the collector creates one client per source worker.
 """
 
+import http.client
 import re
 import time
 import urllib.error
@@ -16,7 +17,7 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from email.message import Message
 from typing import IO, Protocol
-from urllib.parse import urljoin, urlsplit
+from urllib.parse import quote, urljoin, urlsplit
 
 from protego import Protego
 
@@ -83,6 +84,9 @@ class HttpClient:
         sleep: Callable[[float], None] = time.sleep,
     ) -> None:
         self.user_agent = user_agent
+        # RFC 9309 matches robots.txt groups on the product token ("AINewsRadar"), not on
+        # substrings of the whole User-Agent (which contains "github.com").
+        self._robots_token = user_agent.split("/", 1)[0].strip() or user_agent
         self._transport: Transport = transport or urllib_transport
         self._timeout = timeout
         self._max_bytes = max_bytes
@@ -154,14 +158,15 @@ class HttpClient:
             self._robots[origin] = rules
         if isinstance(rules, _DisallowAll):
             raise RobotsDisallowedError(f"robots.txt unavailable for {parts.netloc}")
-        if not rules.can_fetch(url, self.user_agent):
+        if not rules.can_fetch(url, self._robots_token):
             raise RobotsDisallowedError(f"robots.txt disallows {parts.path or '/'}")
 
     def _load_robots(self, origin: str) -> _Rules:
         # RFC 9309 §2.3.1: 4xx -> no restrictions; 5xx or unreachable -> assume full disallow.
         try:
             response = self._fetch(f"{origin}/robots.txt", check_robots=False)
-            if 400 <= response.status < 500:
+            # 429 means "slow down": treat it like a server error and skip the host this run.
+            if 400 <= response.status < 500 and response.status != 429:
                 return _AllowAll()
             if not 200 <= response.status < 300:
                 return _DisallowAll()
@@ -217,13 +222,21 @@ def _lower(headers: Message | None) -> dict[str, str]:
     return {name.lower(): value for name, value in (headers or Message()).items()}
 
 
+def _to_uri(url: str) -> str:
+    """Percent-encode spaces and non-ASCII characters (an IRI) so http.client can send it."""
+    return quote(url, safe=":/?#[]@!$&'()*+,;=%~")
+
+
 def _read_limited(stream: IO[bytes], limit: int, deadline: float) -> bytes:
+    # read1 returns as soon as some bytes arrive, so the deadline also holds against servers
+    # that trickle one byte at a time (read(n) would block until n bytes arrived).
+    reader = getattr(stream, "read1", stream.read)
     chunks: list[bytes] = []
     total = 0
     while total <= limit:
         if time.monotonic() > deadline:
             raise FetchError("timed out")
-        chunk = stream.read(65536)
+        chunk = reader(65536)
         if not chunk:
             break
         chunks.append(chunk)
@@ -233,7 +246,7 @@ def _read_limited(stream: IO[bytes], limit: int, deadline: float) -> bytes:
 
 def urllib_transport(url: str, headers: Mapping[str, str], timeout: float, limit: int) -> Response:
     """GET without following redirects; reads at most limit + 1 bytes within `timeout` seconds."""
-    request = urllib.request.Request(url, headers=dict(headers), method="GET")  # noqa: S310
+    request = urllib.request.Request(_to_uri(url), headers=dict(headers), method="GET")  # noqa: S310
     deadline = time.monotonic() + timeout
     try:
         with _OPENER.open(request, timeout=timeout) as raw:
@@ -241,6 +254,6 @@ def urllib_transport(url: str, headers: Mapping[str, str], timeout: float, limit
     except urllib.error.HTTPError as err:
         with err:
             return Response(err.code, _lower(err.headers), _read_limited(err, limit, deadline))
-    except (urllib.error.URLError, OSError) as err:
+    except (urllib.error.URLError, OSError, http.client.HTTPException, ValueError) as err:
         reason = getattr(err, "reason", err)
         raise FetchError(f"network error: {reason}") from err

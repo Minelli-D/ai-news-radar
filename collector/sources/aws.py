@@ -47,10 +47,15 @@ def fetch(client: Fetcher | None = None) -> list[NewsItem]:
     return parse_feed(
         (client or default_client()).get(FEED_URL),
         SLUG,
+        FEED_URL,
         keep=lambda entry: is_ai_related(entry.get("title", ""), _entry_tags(entry)),
     )
 
 
 SOURCE = Source(
-    slug=SLUG, name="AWS", homepage="https://aws.amazon.com/about-aws/whats-new/", fetch=fetch
+    slug=SLUG,
+    name="AWS",
+    homepage="https://aws.amazon.com/about-aws/whats-new/",
+    fetch=fetch,
+    allowed_hosts=("aws.amazon.com",),
 )

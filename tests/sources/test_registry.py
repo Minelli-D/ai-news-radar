@@ -17,3 +17,9 @@ def test_every_source_has_a_display_name_and_https_homepage() -> None:
     for source in SOURCES:
         assert source.name
         assert source.homepage.startswith("https://")
+
+
+def test_every_source_declares_the_hosts_its_links_may_point_to() -> None:
+    for source in SOURCES:
+        assert source.allowed_hosts
+        assert source.allows(source.homepage)
