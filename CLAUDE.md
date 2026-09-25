@@ -50,8 +50,7 @@ Site (`site/`): vanilla HTML/CSS/ES modules, no build step, no cookies, trackers
 
 ```bash
 node --test tests/site/                                       # unit tests for site/assets/lib.mjs
-.venv/bin/python scripts/run_local.py --out build/preview && cp -r site/. build/preview/ \
-  && python3 -m http.server 8000 -d build/preview             # local preview with live data
+.venv/bin/python scripts/run_local.py --out build/preview --serve 8000   # live data + site, S3-like MIME types
 ```
 
 - `lib.mjs` holds the pure logic (tested); `app.mjs` does DOM wiring only, and all data goes

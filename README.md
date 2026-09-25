@@ -197,8 +197,7 @@ uv venv --python 3.12 .venv && uv pip install --python .venv/bin/python -r requi
 .venv/bin/pytest                                   # offline: fixtures only, sockets are blocked
 .venv/bin/ruff check . && .venv/bin/ruff format --check . && .venv/bin/mypy
 node --test tests/site/                            # site logic
-.venv/bin/python scripts/run_local.py --out build/preview   # one LIVE run, no AWS
-cp -r site/. build/preview/ && python3 -m http.server 8000 -d build/preview
+.venv/bin/python scripts/run_local.py --out build/preview --serve 8000   # LIVE run, no AWS → http://127.0.0.1:8000
 ```
 
 ## Add a new source
