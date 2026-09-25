@@ -11,13 +11,14 @@ CloudFront invalidations: objects carry Cache-Control max-age=300 instead.
 import base64
 import hashlib
 import html
+import inspect
 import json
+import sys
 import xml.etree.ElementTree as ET
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from email.utils import format_datetime
-from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
@@ -34,8 +35,21 @@ JSON_TYPE = "application/json; charset=utf-8"
 RSS_TYPE = "application/rss+xml; charset=utf-8"
 HTML_TYPE = "text/html; charset=utf-8"
 ATOM_NS = "http://www.w3.org/2005/Atom"
-# Editing this module (e.g. a template) changes the version, which rewrites every object once.
-RENDER_VERSION = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()[:12]
+
+
+def _render_version() -> str:
+    """Hash of this module's source: editing a template rewrites every object once.
+
+    Read through the module's loader (not the file path) so it also works from a zip.
+    """
+    try:
+        source = inspect.getsource(sys.modules[__name__])
+    except (OSError, TypeError):
+        source = ""
+    return hashlib.sha256(source.encode()).hexdigest()[:12]
+
+
+RENDER_VERSION = _render_version()
 
 Snapshot = dict[str, Any]
 

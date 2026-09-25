@@ -16,8 +16,8 @@ allowed-confusables = ["’", "‘", "–", "—"]
 
 [tool.ruff.lint.per-file-ignores]
 # Tests assert freely, parse the XML we generate ourselves, hold long URL/title literals,
-# and give offline botocore Stubber clients dummy credentials.
-"tests/**" = ["S101", "S106", "S314", "E501"]
+# give offline botocore Stubber clients dummy credentials, and run fixed subprocess commands.
+"tests/**" = ["S101", "S106", "S314", "S603", "E501"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
