@@ -1,0 +1,803 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Building AI News Radar</title>
+<meta name="description" content="How AI News Radar was verified, built, reviewed and tested, step by step, and what is left before it goes live on AWS.">
+<style>
+  :root {
+    --bg: #ffffff;
+    --surface: #f6f7f9;
+    --code-bg: #eef1f5;
+    --text: #1b1f24;
+    --muted: #57606a;
+    --border: #d8dee4;
+    --accent: #0b57d0;
+    --done: #0e6b56;
+    --wait: #a34f00;
+    --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, "SFMono-Regular", "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #0f1216;
+      --surface: #171b21;
+      --code-bg: #1d232b;
+      --text: #e6e9ee;
+      --muted: #9aa4b2;
+      --border: #2b323c;
+      --accent: #8ab4f8;
+      --done: #5cc9a7;
+      --wait: #fdba74;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #0f1216;
+    --surface: #171b21;
+    --code-bg: #1d232b;
+    --text: #e6e9ee;
+    --muted: #9aa4b2;
+    --border: #2b323c;
+    --accent: #8ab4f8;
+    --done: #5cc9a7;
+    --wait: #fdba74;
+  }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 1rem/1.6 var(--font);
+  }
+
+  .page {
+    display: grid;
+    gap: 3rem;
+    width: min(100%, 52rem);
+    margin-inline: auto;
+    padding-inline: max(16px, 4vw);
+    padding-block: 3rem 4rem;
+    box-sizing: border-box;
+  }
+
+  h1, h2, h3 {
+    margin: 0;
+    line-height: 1.2;
+    text-wrap: balance;
+  }
+
+  h1 {
+    font-size: clamp(2rem, 1.4rem + 2.6vw, 2.9rem);
+    letter-spacing: -0.02em;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+    letter-spacing: -0.01em;
+  }
+
+  h3 {
+    font-size: 1.125rem;
+  }
+
+  p, ul {
+    margin: 0;
+  }
+
+  a {
+    color: var(--accent);
+    text-underline-offset: 0.15em;
+  }
+
+  a:focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 3px;
+  }
+
+  code, .mono {
+    font-family: var(--mono);
+    font-size: 0.875em;
+  }
+
+  code {
+    padding: 0.1em 0.35em;
+    border-radius: 4px;
+    background: var(--code-bg);
+    overflow-wrap: anywhere;
+  }
+
+  .eyebrow {
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* Intro */
+
+  .intro {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .brand svg {
+    flex: none;
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+
+  .lede {
+    max-width: 62ch;
+    font-size: 1.125rem;
+    color: var(--muted);
+  }
+
+  .pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.2rem 0.75rem;
+    border: 1px solid color-mix(in srgb, var(--pill) 40%, transparent);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--pill) 12%, transparent);
+    color: var(--pill);
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+
+  .pill::before {
+    content: "";
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: var(--pill);
+  }
+
+  .pill--done { --pill: var(--done); }
+  .pill--wait { --pill: var(--wait); }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    margin: 0.5rem 0 0;
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    background: var(--border);
+    overflow: hidden;
+  }
+
+  .stats div {
+    display: grid;
+    gap: 0.15rem;
+    padding: 0.85rem 1rem;
+    background: var(--surface);
+  }
+
+  .stats dt {
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+
+  .stats dd {
+    margin: 0;
+    font-size: 1.35rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .toc {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1.25rem;
+    font-size: 0.95rem;
+  }
+
+  /* Sections */
+
+  section {
+    display: grid;
+    gap: 1.25rem;
+  }
+
+  .section-note {
+    max-width: 62ch;
+    color: var(--muted);
+  }
+
+  /* Timeline */
+
+  .steps {
+    display: grid;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .step {
+    position: relative;
+    display: grid;
+    grid-template-columns: 2.25rem 1fr;
+    column-gap: 1rem;
+    padding-bottom: 2rem;
+  }
+
+  .step:last-child {
+    padding-bottom: 0;
+  }
+
+  .step::before {
+    content: "";
+    position: absolute;
+    top: 2.25rem;
+    bottom: 0;
+    left: calc(1.125rem - 1px);
+    width: 2px;
+    background: var(--border);
+  }
+
+  .step:last-child::before {
+    display: none;
+  }
+
+  .step-no {
+    display: grid;
+    place-items: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border: 2px solid var(--accent);
+    border-radius: 50%;
+    background: var(--bg);
+    color: var(--accent);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .step-body {
+    display: grid;
+    gap: 0.6rem;
+    min-width: 0;
+    padding-top: 0.2rem;
+  }
+
+  .step-title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.25rem 0.75rem;
+  }
+
+  .phase {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .step-body ul {
+    display: grid;
+    gap: 0.35rem;
+    padding-left: 1.2rem;
+  }
+
+  .step-body ul ul {
+    margin-top: 0.35rem;
+  }
+
+  .evidence {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.75rem;
+    padding: 0.55rem 0.8rem;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    background: var(--surface);
+    font-size: 0.875rem;
+  }
+
+  .evidence .label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--done);
+  }
+
+  .commit {
+    padding: 0.05rem 0.45rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--bg);
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 0.8rem;
+  }
+
+  /* Tables */
+
+  .table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+  }
+
+  table {
+    width: 100%;
+    min-width: 34rem;
+    border-collapse: collapse;
+    font-size: 0.925rem;
+  }
+
+  th, td {
+    padding: 0.6rem 0.9rem;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    vertical-align: top;
+  }
+
+  th {
+    background: var(--surface);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  tr:last-child td {
+    border-bottom: 0;
+  }
+
+  td.mono {
+    white-space: nowrap;
+  }
+
+  /* Next steps */
+
+  .next {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+    gap: 1rem;
+  }
+
+  .panel {
+    display: grid;
+    align-content: start;
+    gap: 0.75rem;
+    padding: 1.1rem 1.25rem;
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    background: var(--surface);
+  }
+
+  .panel ul {
+    display: grid;
+    gap: 0.5rem;
+    padding-left: 1.2rem;
+  }
+
+  .checklist {
+    list-style: none;
+    padding-left: 0 !important;
+  }
+
+  .checklist li {
+    display: grid;
+    grid-template-columns: 1.1rem 1fr;
+    gap: 0.6rem;
+  }
+
+  .checklist li::before {
+    content: "";
+    width: 0.95rem;
+    height: 0.95rem;
+    margin-top: 0.3rem;
+    border: 2px solid var(--muted);
+    border-radius: 3px;
+  }
+
+  footer {
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+
+  @media (max-width: 30rem) {
+    .stats {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .step {
+      grid-template-columns: 1.9rem 1fr;
+      column-gap: 0.75rem;
+    }
+
+    .step-no {
+      width: 1.9rem;
+      height: 1.9rem;
+      font-size: 0.9rem;
+    }
+
+    .step::before {
+      top: 1.9rem;
+      left: calc(0.95rem - 1px);
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <header class="intro">
+    <p class="eyebrow">Project log · 25 September 2026</p>
+    <div class="brand">
+      <svg viewBox="0 0 32 32" role="img" aria-label="Radar icon">
+        <circle cx="16" cy="16" r="15" fill="#0b57d0"></circle>
+        <circle cx="16" cy="16" r="10" fill="none" stroke="#fff" stroke-opacity=".45" stroke-width="1.5"></circle>
+        <circle cx="16" cy="16" r="5" fill="none" stroke="#fff" stroke-opacity=".45" stroke-width="1.5"></circle>
+        <path d="M16 16V1a15 15 0 0 1 13 7.5z" fill="#fff" fill-opacity=".35"></path>
+        <circle cx="16" cy="16" r="2" fill="#fff"></circle>
+        <circle cx="22.5" cy="8.5" r="1.8" fill="#fff"></circle>
+      </svg>
+      <h1>Building AI News Radar</h1>
+    </div>
+    <p class="lede">A public page that collects the latest AI news every hour, on a serverless AWS stack
+      that costs about one cent a month. This log records each step: what was checked, what was built,
+      what the tests caught, and what is left before the site goes live.</p>
+    <div class="pills">
+      <span class="pill pill--done">Built and committed locally</span>
+      <span class="pill pill--wait">Not deployed to AWS yet</span>
+    </div>
+    <dl class="stats">
+      <div><dt>Commits</dt><dd>9</dd></div>
+      <div><dt>Python tests</dt><dd>194</dd></div>
+      <div><dt>Site tests</dt><dd>9</dd></div>
+      <div><dt>News sources</dt><dd>6</dd></div>
+      <div><dt>AWS resources planned</dt><dd>41</dd></div>
+      <div><dt>Expected cost</dt><dd>≈ $0.01/mo</dd></div>
+    </dl>
+    <nav class="toc" aria-label="On this page">
+      <a href="#timeline">Timeline</a>
+      <a href="#sources">Sources</a>
+      <a href="#commits">Commits</a>
+      <a href="#next">What's next</a>
+    </nav>
+  </header>
+
+  <section id="timeline" aria-labelledby="timeline-title">
+    <h2 id="timeline-title">Timeline</h2>
+    <ol class="steps">
+      <li class="step">
+        <span class="step-no">1</span>
+        <div class="step-body">
+          <div class="step-title"><h3>The brief</h3><span class="phase">Kickoff</span></div>
+          <p>The work started with <code>/init</code> in an empty folder, followed by the full brief: six
+            AI news sources, a serverless AWS architecture, Terraform, GitHub Actions, and a hard cost
+            rule of €0 per month.</p>
+          <ul>
+            <li>Agreed process: a short plan and verified source URLs first, then six phases with one commit each.</li>
+            <li>Nothing is applied to AWS or pushed to GitHub without the owner's explicit OK.</li>
+          </ul>
+        </div>
+      </li>
+
+      <li class="step">
+        <span class="step-no">2</span>
+        <div class="step-body">
+          <div class="step-title"><h3>Verifying every source</h3><span class="phase">Research</span></div>
+          <p>Every candidate URL was fetched with the collector's descriptive User-Agent, and every
+            site's robots.txt was read.</p>
+          <ul>
+            <li>Anthropic has no RSS feed. Its news page embeds CMS data with the title, date and summary of 267 posts.</li>
+            <li>OpenAI's feed carries its whole history: 1,229 items.</li>
+            <li><code>www.deepseek.com</code> sends non-browser clients to a page that returns 403. The API
+              docs site lists all 18 announcements in its sitemap and news sidebar.</li>
+            <li>The Google AI feed has moved to a new path, and about 30% of DeepMind items have no description.
+              Google Research was rejected because its descriptions are only category names.</li>
+            <li>AWS tags its own AI announcements, which allows a precise filter. The keyword "agent" was
+              dropped because it matched Amazon Connect's call-centre agents.</li>
+            <li>AI News Hub's page has no dates, so its blog feed is used instead. Its newest post is from 3 June 2026.</li>
+            <li>AWS's robots.txt uses wildcards that Python's built-in parser ignores, so the collector uses an RFC 9309 parser.</li>
+          </ul>
+          <p class="evidence"><span class="label">Evidence</span>28 URLs fetched · every robots.txt allows the paths used</p>
+        </div>
+      </li>
+
+      <li class="step">
+        <span class="step-no">3</span>
+        <div class="step-body">
+          <div class="step-title"><h3>Researching cost and AWS rules</h3><span class="phase">Research</span></div>
+          <p>Two research agents worked in parallel while the sources were being checked.</p>
+          <ul>
+            <li>The CloudFront flat-rate Free plan requires a WAF web ACL, is closed to accounts on AWS's
+              Free plan, and cannot be managed by Terraform's AWS provider. The site stays on pay-as-you-go,
+              whose always-free allowance is 1 TB and 10 million requests.</li>
+            <li>S3 is the only service outside the always-free tier. Writing the feed and redirect pages only
+              when they change keeps it near one cent a month.</li>
+            <li>AWS Budgets count credits by default, which would hide real spending, so the budget excludes them.</li>
+            <li>New accounts often have a Lambda concurrency limit of 10, which rules out reserved concurrency.</li>
+            <li>In March 2026 attackers hijacked the tags of <code>trivy-action</code>. Every action in CI is pinned to a commit SHA.</li>
+          </ul>
+        </div>
+      </li>
+
+      <li class="step">
+        <span class="step-no">4</span>
+        <div class="step-body">
+          <div class="step-title"><h3>The plan and the owner's answers</h3><span class="phase">Plan</span></div>
+          <p>The plan listed the verified sources, the cost check, the six phases, the choices open to veto,
+            and the open questions.</p>
+          <ul>
+            <li>GitHub user <code>Minelli-D</code>, AWS CLI profile <code>awsnew</code>.</li>
+            <li>A $5 monthly budget alert for the whole project.</li>
+            <li>"Do it" for every other recommendation.</li>
+          </ul>
+        </div>
+      </li>
+
+      <li class="step">
+        <span class="step-no">5</span>
+        <div class="step-body">
+          <div class="step-title"><h3>Discovering the account's limits</h3><span class="phase">Research</span></div>
+          <p>Read-only checks showed that <code>awsnew</code> comes from AWS's new sign-up flow and is on the Free plan.</p>
+          <ul>
+            <li>AWS-managed service control policies allow regional services only in eu-north-1 (Stockholm).</li>
+            <li>They also deny <code>iam:*Provider*</code>, which blocks the GitHub OIDC provider. The Paid plan has the
+              same rule; only "Activate advanced features" lets the owner remove it.</li>
+            <li>Three options went back to the owner: upgrade and activate advanced features, use another account,
+              or run without CI access to AWS. The Region defaults to eu-north-1 in the meantime.</li>
+          </ul>
+          <p class="evidence"><span class="label">Evidence</span>eu-west-2 calls: explicit deny · eu-north-1 calls: allowed</p>
+        </div>
+      </li>
+
+      <li class="step">
+        <span class="step-no">6</span>
+        <div class="step-body">
+          <div class="step-title"><h3>The collector, test-first</h3><span class="phase">Phase a</span></div>
+          <p>Python 3.12, one module per source, a shared <code>NewsItem</code>, and separate modules for HTTP,
+            storage, enrichment, publishing and the run itself.</p>
+          <ul>
+            <li>Real responses from 25 September were cut down to a few items, with article bodies removed, and
+              used as test fixtures. The tests block every network connection.</li>
+            <li>Tests caught real problems early. feedparser took an image caption ("Google Beam promotional
+              animation") as the article summary, and a hand-typed TTL value in a test was wrong.</li>
+            <li>A live run collected 118 items from all six sources in 10.6 seconds. DeepSeek answered one
+              request with an intermittent HTTP 400, which was logged and skipped as designed.</li>
+          </ul>
+          <p class="evidence"><span class="label">Evidence</span>151 tests passing · ruff and strict mypy clean <span class="commit">5b91e59</span></p>
+        </div>
+      </li>
+
+      <li class="step">
+        <span class="step-no">7</span>
+        <div class="step-body">
+          <div class="step-title"><h3>Bootstrap</h3><span class="phase">Phase b</span></div>
+          <ul>
+            <li>A state bucket for Terraform: versioned, SSE-S3, private, TLS only, with S3-native locking.</li>
+            <li>The GitHub OIDC provider and two roles. The plan role is read-only and trusted only for pull
+              requests. The deploy role is trusted only for the main branch. Both are scoped to the app's exact resource names.</li>
+            <li>A permissions boundary stops CI from creating an over-privileged IAM role.</li>
+            <li>A $5 monthly budget with credits excluded, and S3 Block Public Access for the whole account.</li>
+            <li>Terraform 1.16.4 was installed only after checking HashiCorp's GPG signature and the SHA-256.</li>
+          </ul>
+          <p class="evidence"><span class="label">Evidence</span>Dry-run plan against the account: 22 to add, $0 <span class="commit">a9e7f5b</span></p>
+        </div>
+      </li>
+
+      <li class="step">
+        <span class="step-no">8</span>
+        <div class="step-body">
+          <div class="step-title"><h3>Packaging for arm64</h3><span class="phase">Build</span></div>
+          <ul>
+            <li>A build script installs the pinned dependencies as arm64 wheels and writes a reproducible zip.
+              Two builds produce the same SHA-256.</li>
+            <li>Importing the package straight from the zip exposed a bug: the render version read its own
+              source file through a filesystem path. It now reads it through the module loader, with a regression test.</li>
+          </ul>
+          <p class="evidence"><span class="label">Evidence</span>319 KiB zip · identical hash on rebuild <span class="commit">90bf065</span></p>
+        </div>
+      </li>
+
+      <li class="step">
+        <span class="step-no">9</span>
+        <div class="step-body">
+          <div class="step-title"><h3>Infrastructure</h3><span class="phase">Phase c</span></div>
+          <ul>
+            <li>DynamoDB with 5 read and 5 write units, TTL, and Query-only access.</li>
+            <li>A private S3 bucket served only through CloudFront with Origin Access Control.</li>
+            <li>The Lambda: Python 3.12, arm64, 256 MB, 60 seconds, no VPC. EventBridge Scheduler runs it every hour.</li>
+            <li>An alarm on collector errors that emails the owner through SNS.</li>
+            <li>The collector may write only <code>news.json</code>, <code>feed.xml</code> and <code>latest/*</code>,
+              so it cannot overwrite the site itself.</li>
+          </ul>
+          <p class="evidence"><span class="label">Evidence</span>Dry-run plan: 19 to add, about $0.01 a month <span class="commit">499d5c6</span></p>
+        </div>
+      </li>
+
+      <li class="step">
+        <span class="step-no">10</span>
+        <div class="step-body">
+          <div class="step-title"><h3>The site</h3><span class="phase">Phase d</span></div>
+          <ul>
+            <li>Plain HTML, CSS and ES modules. No framework, build step, cookies, trackers or browser storage.</li>
+            <li>The page logic lives in a small tested module. Untrusted text is rendered only with
+              <code>textContent</code>, under a strict content security policy.</li>
+            <li>Every colour pair passes WCAG AA contrast in both light and dark themes.</li>
+            <li>Headless Chrome rendered 60 items and 7 filters, and the <code>#aws</code> link showed exactly
+              20 AWS items. Light, dark and 390 px layouts were captured.</li>
+          </ul>
+          <p class="evidence"><span class="label">Evidence</span>9 site tests passing <span class="commit">049a79a</span></p>
+        </div>
+      </li>
+
+      <li class="step">
+        <span class="step-no">11</span>
+        <div class="step-body">
+          <div class="step-title"><h3>Independent code review</h3><span class="phase">Review</span></div>
+          <p>A separate reviewer read the whole collector and found no critical issues, five important ones
+            and eleven minor ones. The fixes came with regression tests:</p>
+          <ul>
+            <li><code>news.json</code> is written last, so a failed upload is retried by the next run.</li>
+            <li>Feed descriptions are HTML-escaped, because RSS readers render them as HTML.</li>
+            <li>Control characters and broken Unicode are removed before they can make the feed invalid.</li>
+            <li>Each source may link only to its own domains over HTTPS, so a hacked feed cannot hijack
+              <code>/latest/&lt;company&gt;</code>.</li>
+            <li>A malformed URL or an odd page error can no longer take a source down.</li>
+          </ul>
+          <p>Kept by design, with reasons: Google counts as one source, slow sources re-insert old posts after
+            the 120-day TTL, and Google and DeepSeek each need two requests.</p>
+          <p class="evidence"><span class="label">Evidence</span>152 → 194 tests <span class="commit">4b5cb14</span></p>
+        </div>
+      </li>
+
+      <li class="step">
+        <span class="step-no">12</span>
+        <div class="step-body">
+          <div class="step-title"><h3>CI/CD</h3><span class="phase">Phase e</span></div>
+          <ul>
+            <li>A shared checks workflow runs lint, types, tests, Terraform format and validation, TFLint and two
+              Trivy scans. Pull requests also get a Terraform plan as a comment, with the account ID removed.</li>
+            <li>Pushes to main deploy the stack, upload the site, run the collector once, invalidate
+              <code>/*</code> once and run smoke tests.</li>
+            <li>Every action is pinned to a commit SHA looked up through the GitHub API. <code>trivy-action</code>
+              still runs <code>setup-trivy</code> v0.2.6 internally, from the hijacked tag range, so CI downloads
+              Trivy and TFLint directly and checks them against pinned SHA-256 values.</li>
+            <li>Trivy's one real finding, <code>s3:*</code> on the deploy role, was replaced with explicit actions.
+              The other findings are cost decisions, each documented next to its resource.</li>
+            <li>Running the smoke-test script locally caught a quoting bug before it reached CI.</li>
+          </ul>
+          <p class="evidence"><span class="label">Evidence</span>actionlint, shellcheck, TFLint and Trivy clean <span class="commit">2f830b0</span></p>
+        </div>
+      </li>
+
+      <li class="step">
+        <span class="step-no">13</span>
+        <div class="step-body">
+          <div class="step-title"><h3>README</h3><span class="phase">Phase f</span></div>
+          <p>Status badges, a screenshot rendered from real data, a Mermaid architecture diagram, the design
+            decisions, a cost table, deployment steps, a guide to adding a source, and a roadmap.</p>
+          <p class="evidence"><span class="label">Evidence</span>Published with the code <span class="commit">008afb0</span></p>
+        </div>
+      </li>
+
+      <li class="step">
+        <span class="step-no">14</span>
+        <div class="step-body">
+          <div class="step-title"><h3>Local preview</h3><span class="phase">Demo</span></div>
+          <p>One command collects live news and serves the site on <code>127.0.0.1:8000</code> with the same
+            content types as S3 and CloudFront. It opened in the owner's browser with 118 fresh items.</p>
+          <p class="evidence"><span class="label">Evidence</span><code>scripts/run_local.py --serve 8000</code> <span class="commit">cff91c0</span></p>
+        </div>
+      </li>
+    </ol>
+  </section>
+
+  <section id="sources" aria-labelledby="sources-title">
+    <h2 id="sources-title">Sources</h2>
+    <p class="section-note">Where each company's news comes from. Each run makes one request per feed or
+      page, and at most three extra requests per source to read a missing description.</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th scope="col">Company</th><th scope="col">Fetched from</th><th scope="col">How</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Anthropic</td><td class="mono">anthropic.com/news</td><td>CMS data embedded in the page, with the visible list as fallback</td></tr>
+          <tr><td>OpenAI</td><td class="mono">openai.com/news/rss.xml</td><td>RSS</td></tr>
+          <tr><td>DeepSeek</td><td class="mono">api-docs.deepseek.com</td><td>Sitemap, then the newest announcement page's sidebar</td></tr>
+          <tr><td>Google</td><td class="mono">blog.google + deepmind.google</td><td>Two RSS feeds counted as one source</td></tr>
+          <tr><td>AWS</td><td class="mono">aws.amazon.com/about-aws/whats-new</td><td>RSS filtered by AWS's own AI tags and title keywords</td></tr>
+          <tr><td>AI News Hub</td><td class="mono">ainewshub.org/blog-feed.xml</td><td>RSS</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="commits" aria-labelledby="commits-title">
+    <h2 id="commits-title">Commits</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th scope="col">Commit</th><th scope="col">Message</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="mono">5b91e59</td><td>feat(collector): source adapters, dedup, storage and publishing</td></tr>
+          <tr><td class="mono">a9e7f5b</td><td>feat(bootstrap): remote state, GitHub OIDC roles and cost guardrails</td></tr>
+          <tr><td class="mono">90bf065</td><td>build: reproducible arm64 Lambda package</td></tr>
+          <tr><td class="mono">499d5c6</td><td>feat(infra): serverless stack for the collector and the site</td></tr>
+          <tr><td class="mono">049a79a</td><td>feat(site): responsive, accessible news page with company filters</td></tr>
+          <tr><td class="mono">4b5cb14</td><td>fix(collector): harden against malformed and hostile source data</td></tr>
+          <tr><td class="mono">2f830b0</td><td>ci: pull-request checks with plan comments, and deploy on main</td></tr>
+          <tr><td class="mono">008afb0</td><td>docs: portfolio README with architecture, design decisions and costs</td></tr>
+          <tr><td class="mono">cff91c0</td><td>feat(scripts): one-command local preview with live data</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="next" aria-labelledby="next-title">
+    <h2 id="next-title">What's next</h2>
+    <div class="next">
+      <div class="panel">
+        <h3>Decisions for the owner</h3>
+        <ul>
+          <li>Choose how to handle the account: upgrade and activate advanced features, use another account, or skip CI access to AWS.</li>
+          <li>Provide the email address for alerts.</li>
+          <li>Approve creating the public GitHub repository and pushing.</li>
+          <li>Approve the bootstrap (22 resources, $0) and the first deploy (19 resources, about $0.01 a month).</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h3>Manual steps after that</h3>
+        <ul class="checklist">
+          <li>If upgrading: activate advanced features and remove the policy that blocks OIDC.</li>
+          <li>Set four repository variables and the <code>ALERT_EMAIL</code> secret.</li>
+          <li>Confirm the SNS subscription email after the first deploy.</li>
+          <li>Put the CloudFront URL in the README.</li>
+          <li>Back up the bootstrap state file, or move it into the state bucket.</li>
+          <li>Optional: protect the main branch so CI must pass before a merge.</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h3>Risks to watch</h3>
+        <ul>
+          <li>OpenAI sits behind Cloudflare, which may block requests from AWS. Only that source would be affected.</li>
+          <li>DeepSeek sometimes answers with HTTP 400. The collector skips it and retries on the next run.</li>
+          <li>AI News Hub has not posted since 3 June 2026.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Repository: <span class="mono">github.com/Minelli-D/ai-news-radar</span> (not created yet) · Built with Claude Code · Log date 25 September 2026</p>
+  </footer>
+</div>
+</body>
+</html>
