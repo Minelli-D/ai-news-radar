@@ -196,7 +196,7 @@ Pull requests run the same checks plus a `terraform plan`, posted as a PR commen
 uv venv --python 3.12 .venv && uv pip install --python .venv/bin/python -r requirements-dev.txt
 .venv/bin/pytest                                   # offline: fixtures only, sockets are blocked
 .venv/bin/ruff check . && .venv/bin/ruff format --check . && .venv/bin/mypy
-node --test tests/site/                            # site logic
+node --test tests/site/*.test.mjs                  # site logic
 .venv/bin/python scripts/run_local.py --out build/preview --serve 8000   # LIVE run, no AWS → http://127.0.0.1:8000
 ```
 

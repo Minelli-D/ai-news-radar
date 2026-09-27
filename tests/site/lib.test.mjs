@@ -1,4 +1,4 @@
-// Unit tests for the site's pure logic. Run with: node --test tests/site/
+// Unit tests for the site's pure logic. Run with: node --test tests/site/*.test.mjs
 import assert from "node:assert/strict";
 import { test } from "node:test";
 

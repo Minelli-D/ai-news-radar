@@ -49,7 +49,7 @@ uv venv --python 3.12 .venv && uv pip install --python .venv/bin/python -r requi
 Site (`site/`): vanilla HTML/CSS/ES modules, no build step, no cookies, trackers or storage.
 
 ```bash
-node --test tests/site/                                       # unit tests for site/assets/lib.mjs
+node --test tests/site/*.test.mjs                             # unit tests for site/assets/lib.mjs
 .venv/bin/python scripts/run_local.py --out build/preview --serve 8000   # live data + site, S3-like MIME types
 ```
 
