@@ -5,16 +5,30 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'">
   <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#f2f5f5" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0c1a23" media="(prefers-color-scheme: dark)">
   <meta name="robots" content="noindex">
   <title>Page not found · AI News Radar</title>
   <link rel="icon" href="/assets/favicon.svg?v=dev" type="image/svg+xml">
   <link rel="stylesheet" href="/assets/style.css?v=dev">
 </head>
 <body>
-  <main class="wrap error-page">
-    <h1 class="brand"><img src="/assets/favicon.svg?v=dev" alt="" width="32" height="32"> Page not found</h1>
-    <p class="tagline">There is nothing at this address.</p>
-    <p><a href="/">Back to the latest AI news</a></p>
+  <main class="lost">
+    <a class="lost-brand" href="/">AI News Radar</a>
+    <figure class="scope" data-state="ready" aria-hidden="true">
+      <div class="scope-face">
+        <svg class="scope-plot" viewBox="-100 -100 200 200" focusable="false">
+          <circle class="scope-ring" r="29"></circle>
+          <circle class="scope-ring" r="58"></circle>
+          <circle class="scope-ring scope-ring--edge" r="87"></circle>
+          <circle class="scope-centre" r="2.4"></circle>
+        </svg>
+        <div class="scope-sweep"></div>
+      </div>
+    </figure>
+    <h1 class="lost-title">Nothing on the radar here</h1>
+    <p>There is no page at this address. The link may be mistyped, or the page may have moved.</p>
+    <a class="lost-action" href="/">See the latest AI news</a>
   </main>
 </body>
 </html>
