@@ -16,10 +16,12 @@ data "aws_iam_openid_connect_provider" "github" {
 # Trust: the "plan" role only for pull_request workflows of this repository, the "deploy"
 # role only for workflows running on refs/heads/main. (A job that uses a GitHub
 # "environment" presents a different `sub`, so deploy.yml must not declare one.)
+# The subject carries the owner and repository IDs (GitHub's immutable subjects), so a
+# deleted and re-created repository with the same name cannot assume these roles.
 data "aws_iam_policy_document" "trust_github" {
   for_each = {
-    plan   = "repo:${var.github_repository}:pull_request"
-    deploy = "repo:${var.github_repository}:ref:refs/heads/main"
+    plan   = "${var.github_oidc_subject_prefix}:pull_request"
+    deploy = "${var.github_oidc_subject_prefix}:ref:refs/heads/main"
   }
 
   statement {

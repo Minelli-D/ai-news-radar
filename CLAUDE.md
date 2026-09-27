@@ -173,6 +173,9 @@ allowed-hosts check) + registry entry + a `.badge--<slug>` colour in `site/asset
   apply → `scripts/deploy_site.sh` → `scripts/invoke_collector.sh` → one `/*` invalidation →
   `scripts/smoke_test.sh`. The deploy job must not use a GitHub environment (it would change the
   OIDC `sub` the deploy role trusts).
+- GitHub issues immutable OIDC subjects for this repo
+  (`repo:Minelli-D@<owner id>/ai-news-radar@<repo id>:…`); bootstrap's `github_oidc_subject_prefix`
+  must match `gh api repos/Minelli-D/ai-news-radar/actions/oidc/customization/sub`.
 - Repository settings needed: variables `AWS_REGION`, `AWS_PLAN_ROLE_ARN`,
   `AWS_DEPLOY_ROLE_ARN`, `TF_STATE_BUCKET` (from `terraform -chdir=bootstrap output`) and the
   secret `ALERT_EMAIL`.
