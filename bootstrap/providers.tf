@@ -1,4 +1,4 @@
-# Credentials come from the environment, e.g. `export AWS_PROFILE=awsnew`.
+# Credentials come from the environment, e.g. `export AWS_PROFILE=minelli-d`.
 provider "aws" {
   region = var.region
 

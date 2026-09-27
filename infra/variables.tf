@@ -1,5 +1,5 @@
 variable "region" {
-  description = "AWS Region (must match bootstrap; the awsnew account only allows eu-north-1)."
+  description = "AWS Region (must match bootstrap)."
   type        = string
   default     = "eu-north-1"
 }

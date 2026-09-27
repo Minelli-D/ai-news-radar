@@ -1,5 +1,5 @@
 variable "region" {
-  description = "AWS Region for the project (the awsnew account only allows eu-north-1)."
+  description = "AWS Region for the project."
   type        = string
   default     = "eu-north-1"
 }

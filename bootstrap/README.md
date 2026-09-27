@@ -18,7 +18,7 @@ One-time setup, run locally with your own AWS credentials. It creates:
 ```bash
 cd bootstrap
 cp terraform.tfvars.example terraform.tfvars   # set alert_email (file is git-ignored)
-export AWS_PROFILE=awsnew
+export AWS_PROFILE=minelli-d
 terraform init
 terraform plan -out tfplan
 terraform apply tfplan
@@ -38,7 +38,7 @@ state bucket holds a few KB.
 
 ## Accounts from AWS's new sign-up flow
 
-Accounts created with the new "Sign up for AWS" experience (like `awsnew`) run under
+Accounts created with the new "Sign up for AWS" experience (like the project's first account) run under
 AWS-managed SCPs that deny `iam:*Provider*` and restrict regional services to one Region,
 on both the Free and the Paid plan. The OIDC provider can only be created after upgrading to the
 Paid plan, choosing "Activate advanced features" and removing that SCP.

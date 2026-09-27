@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 AI News Radar: a public portfolio project that aggregates AI news (Anthropic, OpenAI, DeepSeek,
 Google, AWS, AI News Hub) on a serverless AWS stack that must cost €0/month. GitHub repo:
-`Minelli-D/ai-news-radar` (the local folder is named `aws-ai-news`). AWS CLI profile: `awsnew`.
+`Minelli-D/ai-news-radar` (the local folder is named `aws-ai-news`). AWS CLI profile: `minelli-d`.
 
 ## Owner's hard rules
 
@@ -26,13 +26,13 @@ Google, AWS, AI News Hub) on a serverless AWS stack that must cost €0/month. G
   CloudFront invalidations; only the deploy pipeline may create one `/*` per deploy.
 - Work in phases (collector → bootstrap → infra → site → CI/CD → README), one commit each.
 
-## AWS account constraints (profile `awsnew`)
+## AWS account (profile `minelli-d`)
 
-The account comes from AWS's new "Sign up for AWS" flow (Free plan with credits; it closes on
-2027-03-15 unless upgraded). AWS-managed SCPs allow regional services **only in eu-north-1**
-and deny `iam:*Provider*`, so the GitHub OIDC provider cannot be created until the owner
-upgrades to the Paid plan and activates advanced features. Verify with read-only calls before
-assuming anything changed.
+A dedicated account on the Paid plan (with credits), signed in with `aws login`; everything
+lives in eu-north-1. It has no AWS-managed SCPs, so the GitHub OIDC provider could be created.
+`bootstrap/` was applied on 2026-09-27; its state is local (`bootstrap/terraform.tfstate`,
+git-ignored). The first account, `awsnew`, is no longer used: its SCPs denied `iam:*Provider*`
+and every Region except eu-north-1. Verify with read-only calls before assuming anything changed.
 
 ## Commands
 
@@ -89,8 +89,8 @@ signature). Local checks without credentials:
 
 ```bash
 .venv/bin/python scripts/build_lambda.py        # reproducible zip (same sha256 for the same inputs)
-AWS_PROFILE=awsnew .tools/terraform -chdir=infra init -backend-config="bucket=<state_bucket>" -backend-config="region=eu-north-1"
-AWS_PROFILE=awsnew .tools/terraform -chdir=infra plan   # read-only; never apply without the owner's OK
+AWS_PROFILE=minelli-d .tools/terraform -chdir=infra init -backend-config="bucket=<state_bucket>" -backend-config="region=eu-north-1"
+AWS_PROFILE=minelli-d .tools/terraform -chdir=infra plan   # read-only; never apply without the owner's OK
 ```
 
 ## Architecture
