@@ -4,13 +4,16 @@
 [![Deploy](https://github.com/Minelli-D/ai-news-radar/actions/workflows/deploy.yml/badge.svg)](https://github.com/Minelli-D/ai-news-radar/actions/workflows/deploy.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-**Live:** _the CloudFront URL goes here after the first deploy_ · [RSS feed](#public-endpoints) · [JSON](#public-endpoints)
+**Live:** [d1tgqahtdqvv2q.cloudfront.net](https://d1tgqahtdqvv2q.cloudfront.net) · [RSS feed](https://d1tgqahtdqvv2q.cloudfront.net/feed.xml) · [JSON](https://d1tgqahtdqvv2q.cloudfront.net/news.json)
 
 The latest news from the main AI players (Anthropic, OpenAI, DeepSeek, Google, AWS and AI
 News Hub) on one fast page, refreshed every hour. It runs on a fully serverless AWS stack,
 built and deployed with Terraform and GitHub Actions, for about **one cent a month**.
 
-![AI News Radar homepage](docs/screenshot.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshot-dark.png">
+  <img alt="AI News Radar homepage: a radar of the last 30 days of posts per company, company filters, and the news grouped by day" src="docs/screenshot.png">
+</picture>
 
 ## Architecture
 
@@ -77,7 +80,7 @@ article's `og:description`) are stored and shown. Article bodies are never store
 
 | Path | What it is |
 |---|---|
-| `/` | The news page (latest 60 items, filter buttons, "updated X minutes ago") |
+| `/` | The news page: a radar of each company's posts from the last 30 days, the latest 60 items grouped by day, company filters with each source's health, "updated X minutes ago" |
 | `/news.json` | Public data file: each source's latest items plus its health (CORS enabled) |
 | `/feed.xml` | Combined RSS 2.0 feed of the newest 60 items |
 | `/latest/<company>` | Redirects to that company's newest post: `anthropic`, `openai`, `deepseek`, `google`, `aws`, `ainewshub` |
@@ -135,11 +138,12 @@ article's `og:description`) are stored and shown. Article bodies are never store
 
 ## Cost
 
-Region eu-north-1, about 730 runs a month.
+Region eu-north-1, about 730 runs a month. Measured on the live stack: a collector run takes
+10–14 s at 256 MB, and the site bucket holds 15 objects (123 KB).
 
 | Service | Free allowance | Expected usage | Cost / month |
 |---|---|---|---|
-| Lambda (arm64) | 1M requests + 400,000 GB-s, always free | 730 requests, ~3,000 GB-s | $0 |
+| Lambda (arm64) | 1M requests + 400,000 GB-s, always free | 730 requests, ~2,500 GB-s | $0 |
 | EventBridge Scheduler | 14M invocations, always free | 730 | $0 |
 | DynamoDB (provisioned) | 25 GB + 25 RCU + 25 WCU, always free | < 1 MB, 5 RCU + 5 WCU | $0 |
 | CloudFront | 1 TB transfer + 10M requests, always free | < 1 GB, < 100k requests | $0 |
@@ -149,7 +153,7 @@ Region eu-north-1, about 730 runs a month.
 | AWS Budgets | budgets without actions are free | 1 budget | $0 |
 | IAM, OIDC provider | free | 1 provider, 4 roles | $0 |
 | **S3** | **not always free** | < 2 MB, ~1,000 PUT + a few thousand GET | **≈ $0.01** |
-| **Total** | | | **≈ $0.01** |
+| **Total** | | | **≈ $0.01–0.02** |
 
 Guardrails:
 - A **$5/month AWS Budget** emails at 50% and 100%. It excludes credits, so it measures real usage even while credits pay the bill.
@@ -167,6 +171,8 @@ Guardrails:
 Accounts made with AWS's new "Sign up for AWS" flow block `iam:*Provider*` and pin regional services to one Region, until you upgrade to the Paid plan and activate advanced features.
 
 1. **Fork and clone** this repository. Set `github_repository` in `bootstrap/` and `infra/` if your fork has another name.
+   - Also set `github_oidc_subject_prefix` in `bootstrap/` to your fork's `sub_claim_prefix`, from `gh api repos/<owner>/<name>/actions/oidc/customization/sub`.
+   - GitHub signs Actions tokens with immutable subjects (`repo:<owner>@<owner id>/<name>@<repo id>:…`), and the CI roles trust exactly that subject. If the prefix is wrong, the deploy fails with "Not authorized to perform sts:AssumeRoleWithWebIdentity".
 2. **Bootstrap once**, locally, with your own credentials. See [`bootstrap/README.md`](bootstrap/README.md).
    ```bash
    cd bootstrap && cp terraform.tfvars.example terraform.tfvars   # set alert_email
