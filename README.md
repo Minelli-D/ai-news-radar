@@ -61,6 +61,8 @@ flowchart LR
 6. **CloudFront** serves the bucket through Origin Access Control, with `Cache-Control: max-age=300` on the data files.
    - The page itself is vanilla HTML/CSS/JS: no framework, no build step, no cookies, trackers or storage.
    - It fetches `/news.json` and renders it with per-company filters.
+   - It installs as a home-screen app (web app manifest, no service worker): Share → Add to Home Screen
+     in Safari, or Install app in Chrome and Brave. It fetches `news.json` again when you come back to it.
 
 Only the title, link, date and a short description (≤ 200 characters, from the feed or the
 article's `og:description`) are stored and shown. Article bodies are never stored or republished.

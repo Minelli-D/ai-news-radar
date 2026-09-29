@@ -10,6 +10,7 @@ import {
   groupByDay,
   hashUnit,
   isStale,
+  needsRefresh,
   newestBySource,
   pageLocale,
   polar,
@@ -108,6 +109,12 @@ test("isStale flags data older than three hours", () => {
   assert.equal(isStale("2026-09-25T09:30:00Z", NOW), false);
   assert.equal(isStale("2026-09-25T08:59:00Z", NOW), true);
   assert.equal(isStale("invalid", NOW), true);
+});
+
+test("needsRefresh asks for news.json again once the last fetch is five minutes old", () => {
+  assert.equal(needsRefresh(new Date(NOW.getTime() - 4 * 60 * 1000), NOW), false);
+  assert.equal(needsRefresh(new Date(NOW.getTime() - 5 * 60 * 1000), NOW), true);
+  assert.equal(needsRefresh(null, NOW), true);
 });
 
 test("newestBySource keeps the newest valid date of each source", () => {

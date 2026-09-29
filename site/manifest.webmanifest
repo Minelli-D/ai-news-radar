@@ -1,0 +1,17 @@
+{
+  "id": "/",
+  "name": "AI News Radar",
+  "short_name": "AI Radar",
+  "description": "The latest news from the main AI labs, collected every hour.",
+  "lang": "en",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f2f5f5",
+  "theme_color": "#f2f5f5",
+  "icons": [
+    { "src": "/assets/icon-192.png?v=dev", "sizes": "192x192", "type": "image/png" },
+    { "src": "/assets/icon-512.png?v=dev", "sizes": "512x512", "type": "image/png" },
+    { "src": "/assets/icon-512.png?v=dev", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

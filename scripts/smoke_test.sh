@@ -24,6 +24,7 @@ expect_type() { # url content-type-substring
 expect_status "$site/" 200
 expect_status "$site/does-not-exist" 404
 expect_type "$site/assets/app.mjs" "javascript"
+expect_type "$site/manifest.webmanifest" "application/manifest+json"
 expect_type "$site/latest/openai" "text/html"
 
 curl "${curl_opts[@]}" --fail "$site/news.json" | python3 -c '
