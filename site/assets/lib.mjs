@@ -37,9 +37,12 @@ export function safeHttpUrl(value) {
   }
 }
 
-/** "All" shows the newest 60 items; a company filter shows all of that company's items. */
-export function selectItems(items, source, limit = HOMEPAGE_LIMIT) {
-  return source === ALL ? items.slice(0, limit) : items.filter((item) => item.source === source);
+/** "All" shows the newest 60 items of the sources marked for it (research papers are left out:
+ *  there are too many); a company filter shows all of that company's items. */
+export function selectItems(items, source, sources = [], limit = HOMEPAGE_LIMIT) {
+  if (source !== ALL) return items.filter((item) => item.source === source);
+  const hidden = new Set(sources.filter((row) => row.inAll === false).map((row) => row.slug));
+  return items.filter((item) => !hidden.has(item.source)).slice(0, limit);
 }
 
 /** "Sep 23, 2026" in the reader's locale and time zone ("" for an invalid date). */

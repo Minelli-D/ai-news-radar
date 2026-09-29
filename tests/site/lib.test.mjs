@@ -66,6 +66,22 @@ test("selectItems shows every item of one source", () => {
   assert.ok(selected.every((item) => item.source === "openai"));
 });
 
+test("selectItems leaves sources kept out of All to their own filter", () => {
+  const sources = [{ slug: "openai", inAll: true }, { slug: "papers", inAll: false }, { slug: "aws" }];
+  const mixed = [
+    { source: "papers", title: "p1" },
+    { source: "openai", title: "o1" },
+    { source: "aws", title: "a1" }, // no inAll (an older news.json): shown
+    { source: "papers", title: "p2" },
+  ];
+  assert.deepEqual(selectItems(mixed, ALL, sources).map((item) => item.title), ["o1", "a1"]);
+  assert.deepEqual(selectItems(mixed, "papers", sources).map((item) => item.title), ["p1", "p2"]);
+
+  // Papers are removed before the 60-item cut, so they never take a news item's place.
+  const many = Array.from({ length: 100 }, (_, n) => ({ source: n < 30 ? "papers" : "openai", title: `${n}` }));
+  assert.equal(selectItems(many, ALL, sources).length, 60);
+});
+
 test("formatDate renders a short calendar date", () => {
   assert.equal(formatDate("2026-09-23T16:00:00Z", "en-US", "UTC"), "Sep 23, 2026");
   assert.equal(formatDate("garbage", "en-US", "UTC"), "");

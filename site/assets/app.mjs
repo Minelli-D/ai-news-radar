@@ -96,7 +96,7 @@ function renderDay({ key, label, items }, index, sourceNames) {
 
 function renderItems() {
   const sourceNames = names();
-  const items = selectItems(data.items, current);
+  const items = selectItems(data.items, current, data.sources);
   const name = sourceNames.get(current);
   if (items.length === 0) {
     view.list.replaceChildren(

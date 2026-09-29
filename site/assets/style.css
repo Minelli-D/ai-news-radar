@@ -25,7 +25,7 @@
   --badge-deepseek: #3b4fd1;
   --badge-google: #b3261e;
   --badge-aws: #8a5a00;
-  --badge-ainewshub: #6f3aa8;
+  --badge-huggingface: #6f3aa8;
   --badge-default: #57606a;
 
   --serif: Charter, "Bitstream Charter", "Sitka Text", Cambria, serif;
@@ -54,7 +54,7 @@
 .badge--deepseek { --source: var(--badge-deepseek); }
 .badge--google { --source: var(--badge-google); }
 .badge--aws { --source: var(--badge-aws); }
-.badge--ainewshub { --source: var(--badge-ainewshub); }
+.badge--huggingface { --source: var(--badge-huggingface); }
 
 /* Base */
 

@@ -40,6 +40,9 @@ class Source:
     # Links are only published if they use HTTPS and point to one of these hosts (or a
     # subdomain), so a compromised feed cannot turn /latest/<slug> into a phishing redirect.
     allowed_hosts: tuple[str, ...]
+    # False keeps a high-volume source (research papers) out of the site's "All" view and
+    # feed.xml; it still has its own filter, radar slice and /latest/<slug> page.
+    in_all: bool = True
 
     def allows(self, url: str) -> bool:
         try:

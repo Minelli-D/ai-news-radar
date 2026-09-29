@@ -119,6 +119,7 @@ def test_snapshot_reports_source_health() -> None:
             "ok": True,
             "error": None,
             "lastSuccessAt": "2026-09-25T12:00:00Z",
+            "inAll": True,
         },
         {
             "slug": "google",
@@ -127,6 +128,7 @@ def test_snapshot_reports_source_health() -> None:
             "ok": False,
             "error": "HTTP 503",
             "lastSuccessAt": "2026-09-25T11:00:00Z",
+            "inAll": True,
         },
         {
             "slug": "deepseek",
@@ -135,6 +137,7 @@ def test_snapshot_reports_source_health() -> None:
             "ok": True,
             "error": None,
             "lastSuccessAt": "2026-09-25T12:00:00Z",
+            "inAll": True,
         },
     ]
 
@@ -144,6 +147,28 @@ def test_a_source_that_never_succeeded_has_no_last_success() -> None:
 
     deepseek = next(s for s in snap["sources"] if s["slug"] == "deepseek")
     assert deepseek["lastSuccessAt"] is None
+
+
+PAPERS = Source(
+    "papers", "Papers", "https://example.com/papers", _no_fetch, ("example.com",), in_all=False
+)
+
+
+def with_papers(papers: list[NewsItem], generated_at: datetime = NOW) -> dict[str, Any]:
+    items = {"openai": [news("openai", "a", 23)], "google": [], "deepseek": [], "papers": papers}
+    return build_snapshot([*SOURCES, PAPERS], items, {}, None, generated_at)
+
+
+def test_a_source_kept_out_of_all_is_flagged_in_news_json() -> None:
+    snap = with_papers([news("papers", "p", 24)])
+
+    assert [(row["slug"], row["inAll"]) for row in snap["sources"]] == [
+        ("openai", True),
+        ("google", True),
+        ("deepseek", True),
+        ("papers", False),
+    ]
+    assert snap["items"][0]["source"] == "papers"  # news.json still carries its items
 
 
 # --- feed.xml ---------------------------------------------------------------------------------
@@ -221,6 +246,15 @@ def test_feed_is_capped_at_60_items() -> None:
     channel = ET.fromstring(render_feed(snapshot(many), SITE)).find("channel")
     assert channel is not None
     assert len(channel.findall("item")) == 60
+
+
+def test_feed_leaves_out_sources_kept_out_of_all() -> None:
+    raw = render_feed(with_papers([news("papers", "p", 24)]), SITE)
+
+    channel = ET.fromstring(raw).find("channel")
+    assert channel is not None
+    assert [item.findtext("category") for item in channel.findall("item")] == ["OpenAI"]
+    assert channel.findtext("description") == "Latest news from OpenAI, Google, DeepSeek."
 
 
 # --- latest/<slug> ----------------------------------------------------------------------------
@@ -337,6 +371,13 @@ def test_a_new_post_rewrites_the_feed_and_that_sources_latest_page() -> None:
         "latest/openai",
         "news.json",
     ]
+
+
+def test_a_new_paper_from_a_source_kept_out_of_all_leaves_the_feed_alone() -> None:
+    previous = with_papers([news("papers", "p", 24)], NOW - timedelta(hours=1))
+    snap = with_papers([news("papers", "q", 25), news("papers", "p", 24)])
+
+    assert keys(plan_objects(snap, previous, SITE)) == ["latest/papers", "news.json"]
 
 
 def test_a_changed_renderer_rewrites_everything() -> None:
