@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Home-screen icon: the radar from site/assets/favicon.svg on a full-bleed square (iOS fills
+       transparent corners with black). Scaled to 80% so it stays inside Android's maskable safe
+       zone, a centred circle 40% of the width in radius. Rendered by scripts/render_icons.sh. -->
+  <rect width="32" height="32" fill="#0f2330"/>
+  <g transform="translate(3.2 3.2) scale(.8)">
+    <circle cx="16" cy="16" r="15.5" fill="none" stroke="#dde8ec" stroke-opacity=".4" stroke-width="1.5"/>
+    <circle cx="16" cy="16" r="10.5" fill="none" stroke="#dde8ec" stroke-opacity=".4" stroke-width="1.5"/>
+    <circle cx="16" cy="16" r="5.5" fill="none" stroke="#dde8ec" stroke-opacity=".4" stroke-width="1.5"/>
+    <path d="M16 16V.5a15.5 15.5 0 0 1 13.42 7.75z" fill="#f28ac6" fill-opacity=".5"/>
+    <circle cx="16" cy="16" r="2" fill="#dde8ec"/>
+    <circle cx="22.2" cy="7.2" r="2.2" fill="#f28ac6"/>
+  </g>
+</svg>

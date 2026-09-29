@@ -6,6 +6,7 @@ import {
   describeOutage,
   groupByDay,
   isStale,
+  needsRefresh,
   newestBySource,
   pageLocale,
   polar,
@@ -284,18 +285,42 @@ function renderLoadError(reason) {
   view.list.replaceChildren();
 }
 
+// --- Loading ------------------------------------------------------------------------------------
+
+let fetchedAt = null; // when news.json last loaded successfully
+let loading = false;
+
+function renderClock() {
+  if (!data) return;
+  renderUpdated();
+  renderAges();
+}
+
+// Runs at start-up and whenever the page comes back into view: an app on the home screen stays
+// in memory for days and has no reload button, so it must fetch fresh news by itself.
 async function load() {
+  if (loading || !needsRefresh(fetchedAt)) return;
+  loading = true;
+  let next;
   try {
     const response = await fetch("/news.json", { cache: "no-cache" });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    data = await response.json();
-    if (!Array.isArray(data?.sources) || !Array.isArray(data?.items)) throw new Error("unexpected data");
+    next = await response.json();
+    if (!Array.isArray(next?.sources) || !Array.isArray(next?.items)) throw new Error("unexpected data");
   } catch (error) {
-    const reason =
-      error instanceof TypeError ? "network error" : error instanceof SyntaxError ? "unreadable data" : error.message;
-    renderLoadError(reason);
+    // A failed refresh keeps the list on screen; "Updated X ago" already shows its age.
+    if (!data) {
+      const reason =
+        error instanceof TypeError ? "network error" : error instanceof SyntaxError ? "unreadable data" : error.message;
+      renderLoadError(reason);
+    }
     return;
+  } finally {
+    loading = false;
   }
+  fetchedAt = new Date();
+  if (data && next.generatedAt === data.generatedAt) return; // no new run since the last fetch
+  data = next;
   current = sourceFromHash(location.hash, slugs());
   renderFilters();
   renderItems();
@@ -303,11 +328,19 @@ async function load() {
   renderStatus();
   renderShortcuts();
   renderRadar();
-  setInterval(() => {
-    renderUpdated();
-    renderAges();
-  }, 60_000);
-  window.addEventListener("hashchange", () => select(sourceFromHash(location.hash, slugs())));
 }
+
+setInterval(renderClock, 60_000);
+window.addEventListener("hashchange", () => {
+  if (data) select(sourceFromHash(location.hash, slugs()));
+});
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState !== "visible") return;
+  renderClock(); // timers do not run in the background
+  load();
+});
+window.addEventListener("pageshow", (event) => {
+  if (event.persisted) load(); // restored from the back/forward cache
+});
 
 load();

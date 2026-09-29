@@ -76,6 +76,7 @@ class PreviewHandler(SimpleHTTPRequestHandler):
         ".mjs": "text/javascript",
         ".json": "application/json",
         ".xml": "application/rss+xml",
+        ".webmanifest": "application/manifest+json",
     }
 
     def guess_type(self, path: str | Any) -> str:

@@ -3,6 +3,7 @@
 export const ALL = "all";
 export const HOMEPAGE_LIMIT = 60;
 const STALE_AFTER_MS = 3 * 60 * 60 * 1000;
+const REFRESH_AFTER_MS = 5 * 60 * 1000; // news.json is cached for 5 minutes
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 const UNITS = [
@@ -76,6 +77,11 @@ export function describeOutage({ name, error, lastSuccessAt }, now = new Date())
 export function isStale(generatedAt, now = new Date()) {
   const age = now.getTime() - new Date(generatedAt).getTime();
   return Number.isNaN(age) || age > STALE_AFTER_MS;
+}
+
+/** True when the page should fetch news.json again (never fetched, or fetched 5+ minutes ago). */
+export function needsRefresh(fetchedAt, now = new Date()) {
+  return fetchedAt === null || now.getTime() - fetchedAt.getTime() >= REFRESH_AFTER_MS;
 }
 
 /** The newest publishedAt per source, as ISO strings (sources without items are absent). */

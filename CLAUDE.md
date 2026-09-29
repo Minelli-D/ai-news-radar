@@ -58,8 +58,13 @@ node --test tests/site/*.test.mjs                             # unit tests for s
   (no inline script or style), because CloudFront only adds the managed security headers.
 - Filters and `/latest/*` shortcuts are generated from `news.json` → `sources`, so a new source
   needs no frontend change except a `.badge--<slug>` colour (white text must stay ≥ 4.5:1).
-- `?v=dev` on asset URLs (including the `lib.mjs` import) is replaced with the git SHA at deploy
-  time, so long-cached assets refresh.
+- `?v=dev` on asset URLs (including the `lib.mjs` import and the manifest's icons) is replaced
+  with the git SHA at deploy time, so long-cached assets refresh.
+- Installable on iOS and Android (`manifest.webmanifest`, uploaded as `application/manifest+json`,
+  needs `manifest-src 'self'` in the CSP). No service worker, on purpose. A home-screen app has
+  no reload button, so `app.mjs` fetches `news.json` again when the page becomes visible and the
+  last fetch is 5+ minutes old. App icons are PNGs rendered from `scripts/app-icon.svg` by
+  `scripts/render_icons.sh` (Inkscape + ImageMagick) and committed.
 
 Terraform 1.16.4 lives in `.tools/terraform` (git-ignored, verified against HashiCorp's GPG
 signature). Local checks without credentials:
