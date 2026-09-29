@@ -1,0 +1,198 @@
+[
+ {
+  "paper": {
+   "id": "2609.33485",
+   "title": "DISCO: Distributed Long Context Scaling with Grounding-Reasoning Disaggregation",
+   "summary": "While Large Language Models (LLMs) advertise million-token context windows, reasoning quality often collapses as inputs grow -- a phenomenon termed context rot. This failure stems from a structural entanglement in monolithic architectures, where the massive search burden of contextual grounding exha",
+   "upvotes": 1,
+   "publishedAt": "2026-09-27T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-09-29T00:00:00.000Z"
+  },
+  "publishedAt": "2026-09-26T20:00:00.000Z",
+  "title": "DISCO: Distributed Long Context Scaling with Grounding-Reasoning Disaggregation",
+  "summary": "While Large Language Models (LLMs) advertise million-token context windows, reasoning quality often collapses as inputs grow -- a phenomenon termed context rot. This failure stems from a structural entanglement in monolithic architectures, where the massive search burden of contextual grounding exha",
+  "numComments": 1
+ },
+ {
+  "paper": {
+   "id": "2609.32146",
+   "title": "Playing to Par: Reinforcement Learning for Provably Optimal Quadrilateral Block Decompositions",
+   "summary": "A quadrilateral block decomposition of a planar domain is judged by whether it is complete, whether its elements are well shaped, and how many of its vertices are irregular. The last has a provable floor: the discrete Gauss-Bonnet identity enforces a lower bound on the total vertex irregularity of a",
+   "upvotes": 0,
+   "publishedAt": "2026-09-26T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-09-29T00:00:00.000Z"
+  },
+  "publishedAt": "2026-09-25T20:00:00.000Z",
+  "title": "Playing to Par: Reinforcement Learning for Provably Optimal Quadrilateral Block Decompositions",
+  "summary": "A quadrilateral block decomposition of a planar domain is judged by whether it is complete, whether its elements are well shaped, and how many of its vertices are irregular. The last has a provable floor: the discrete Gauss-Bonnet identity enforces a lower bound on the total vertex irregularity of a",
+  "numComments": 1
+ },
+ {
+  "paper": {
+   "id": "2609.32577",
+   "title": "Groupwise Agentic Grading and Advantage Redistribution for Code Agent RL",
+   "summary": "Reinforcement learning (RL) for code agents often uses executable tests to provide binary rewards. With these rewards, Group Relative Policy Optimization (GRPO) assigns identical advantages to test-passing trajectories within each rollout group, overlooking differences in implementation quality and ",
+   "upvotes": 37,
+   "publishedAt": "2026-09-26T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-09-29T00:00:00.000Z"
+  },
+  "publishedAt": "2026-09-25T20:00:00.000Z",
+  "title": "Groupwise Agentic Grading and Advantage Redistribution for Code Agent RL",
+  "summary": "Reinforcement learning (RL) for code agents often uses executable tests to provide binary rewards. With these rewards, Group Relative Policy Optimization (GRPO) assigns identical advantages to test-passing trajectories within each rollout group, overlooking differences in implementation quality and ",
+  "numComments": 1
+ },
+ {
+  "paper": {
+   "id": "2609.33378",
+   "title": "Recursive Harness Distillation across Agents for Robot Manipulation",
+   "summary": "A central goal in robotics is to enable manipulation across changing tasks and environments. Vision-language-action (VLA) models provide broad manipulation capabilities but can struggle when execution requires diagnosing failures and adapting behavior. Strong agents can discover effective interventi",
+   "upvotes": 25,
+   "publishedAt": "2026-09-27T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-09-29T00:00:00.000Z"
+  },
+  "publishedAt": "2026-09-26T20:00:00.000Z",
+  "title": "Recursive Harness Distillation across Agents for Robot Manipulation",
+  "summary": "A central goal in robotics is to enable manipulation across changing tasks and environments. Vision-language-action (VLA) models provide broad manipulation capabilities but can struggle when execution requires diagnosing failures and adapting behavior. Strong agents can discover effective interventi",
+  "numComments": 1
+ },
+ {
+  "paper": {
+   "id": "2609.33848",
+   "title": "QwenGyre: An Elastic Reinforcement Learning Framework for Training xLong-Horizon Agents",
+   "summary": "Large language model (LLM) agents increasingly undertake extreme-long (xlong) horizon tasks, where a single execution can span hours, hundreds of model--environment interactions, and nearly 1M tokens per rollout. Applying online reinforcement learning (RL) to such executions poses two fundamental ch",
+   "upvotes": 19,
+   "publishedAt": "2026-09-27T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-09-29T00:00:00.000Z"
+  },
+  "publishedAt": "2026-09-26T20:00:00.000Z",
+  "title": "QwenGyre: An Elastic Reinforcement Learning Framework for Training xLong-Horizon Agents",
+  "summary": "Large language model (LLM) agents increasingly undertake extreme-long (xlong) horizon tasks, where a single execution can span hours, hundreds of model--environment interactions, and nearly 1M tokens per rollout. Applying online reinforcement learning (RL) to such executions poses two fundamental ch",
+  "numComments": 1
+ },
+ {
+  "paper": {
+   "id": "2609.35457",
+   "title": "How Far Are We from Removing the Visual Encoder? Scaling Laws for Encoder-Free Multimodal Pretraining",
+   "summary": "Most modern multimodal large language models (MLLMs) build on a pretrained visual encoder that provides a strong visual prior. Encoder-free MLLMs instead learn visual representations directly from raw pixels, offering a simple and unified architecture, but their scaling behavior has not been systema",
+   "upvotes": 50,
+   "publishedAt": "2026-09-28T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-09-29T00:00:00.000Z"
+  },
+  "publishedAt": "2026-09-27T20:00:00.000Z",
+  "title": "How Far Are We from Removing the Visual Encoder? Scaling Laws for Encoder-Free Multimodal Pretraining",
+  "summary": "Most modern multimodal large language models (MLLMs) build on a pretrained visual encoder that provides a strong visual prior. Encoder-free MLLMs instead learn visual representations directly from raw pixels, offering a simple and unified architecture, but their scaling behavior has not been systema",
+  "numComments": 1
+ },
+ {
+  "paper": {
+   "id": "2609.33382",
+   "title": "WideSWE: Can Coding Agents Coordinate Changes Across Repositories?",
+   "summary": "Coding-agent evaluation has progressed from resolving individual issues to carrying out long-horizon development, yet task completion is still largely assessed within a single codebase. In software ecosystems, many features and bug fixes require coordinated changes across multiple repositories. We i",
+   "upvotes": 15,
+   "publishedAt": "2026-09-27T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-09-29T00:00:00.000Z"
+  },
+  "publishedAt": "2026-09-26T20:00:00.000Z",
+  "title": "WideSWE: Can Coding Agents Coordinate Changes Across Repositories?",
+  "summary": "Coding-agent evaluation has progressed from resolving individual issues to carrying out long-horizon development, yet task completion is still largely assessed within a single codebase. In software ecosystems, many features and bug fixes require coordinated changes across multiple repositories. We i",
+  "numComments": 2
+ },
+ {
+  "paper": {
+   "id": "2609.35767",
+   "title": "Learning Native Reflection in Unified Models with Interleaved Reinforcement Learning",
+   "summary": "Unified multimodal models can both look at and render images, so in principle they can repair their own generations: diagnose what an image gets wrong, revise it, observe the result, and diagnose again. Whether a revision helps is known only after it is rendered, so the reflection text and the image",
+   "upvotes": 30,
+   "publishedAt": "2026-09-28T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-09-29T00:00:00.000Z"
+  },
+  "publishedAt": "2026-09-27T20:00:00.000Z",
+  "title": "Learning Native Reflection in Unified Models with Interleaved Reinforcement Learning",
+  "summary": "Unified multimodal models can both look at and render images, so in principle they can repair their own generations: diagnose what an image gets wrong, revise it, observe the result, and diagnose again. Whether a revision helps is known only after it is rendered, so the reflection text and the image",
+  "numComments": 2
+ },
+ {
+  "paper": {
+   "id": "2609.29233",
+   "title": "Post-Training Leaves Behavioral Shadows on Unrelated Decisions",
+   "summary": "We find that language models can transfer capabilities through task-unrelated text. Post-training typically improves language models using task-specific data. Prior work on subliminal learning shows that information about these updates can pass through unrelated generations, but has largely focused ",
+   "upvotes": 77,
+   "publishedAt": "2026-09-24T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-09-29T00:00:00.000Z"
+  },
+  "publishedAt": "2026-09-23T20:00:00.000Z",
+  "title": "Post-Training Leaves Behavioral Shadows on Unrelated Decisions",
+  "summary": "We find that language models can transfer capabilities through task-unrelated text. Post-training typically improves language models using task-specific data. Prior work on subliminal learning shows that information about these updates can pass through unrelated generations, but has largely focused ",
+  "numComments": 1
+ },
+ {
+  "paper": {
+   "id": "2609.35347",
+   "title": "Beyond Teacher Assignment: Domain-Normalized Multi-Teacher On-Policy Distillation",
+   "summary": "Reinforcement learning can turn one language model into several specialists, each excellent at a single skill such as mathematics, coding or following instructions, but users need one model with all of these skills. Multi-teacher on-policy distillation (MOPD) merges them by letting the specialists t",
+   "upvotes": 111,
+   "publishedAt": "2026-09-28T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-09-29T00:00:00.000Z"
+  },
+  "publishedAt": "2026-09-27T20:00:00.000Z",
+  "title": "Beyond Teacher Assignment: Domain-Normalized Multi-Teacher On-Policy Distillation",
+  "summary": "Reinforcement learning can turn one language model into several specialists, each excellent at a single skill such as mathematics, coding or following instructions, but users need one model with all of these skills. Multi-teacher on-policy distillation (MOPD) merges them by letting the specialists t",
+  "numComments": 1
+ },
+ {
+  "paper": {
+   "id": "2609.35560",
+   "title": "WorldPlay2: Extending Real-Time Interactive World Models in Control and Horizon",
+   "summary": "Interactive world models require responding in real time to versatile controls and maintaining long-horizon consistency. However, modeling heterogeneous controls remains difficult, while explosive contexts and unstable distillation impede achieving both long-horizon consistency and real-time respons",
+   "upvotes": 22,
+   "publishedAt": "2026-09-28T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-09-29T00:00:00.000Z"
+  },
+  "publishedAt": "2026-09-27T20:00:00.000Z",
+  "title": "WorldPlay2: Extending Real-Time Interactive World Models in Control and Horizon",
+  "summary": "Interactive world models require responding in real time to versatile controls and maintaining long-horizon consistency. However, modeling heterogeneous controls remains difficult, while explosive contexts and unstable distillation impede achieving both long-horizon consistency and real-time respons",
+  "numComments": 1
+ },
+ {
+  "paper": {
+   "id": "2609.32534",
+   "title": "DepthBench: Measuring How Residual Connections Enable More Computational Depth",
+   "summary": "Depth is a natural way to increase the computational capacity in Transformers, yet the contribution of deeper layers can diminish as depth grows larger. Recent approaches enhance normalization (e.g., LayerNorm Scaling) or residual connections (e.g., mHC, AttnRes) to enable better information flow an",
+   "upvotes": 22,
+   "publishedAt": "2026-09-26T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-09-29T00:00:00.000Z"
+  },
+  "publishedAt": "2026-09-25T20:00:00.000Z",
+  "title": "DepthBench: Measuring How Residual Connections Enable More Computational Depth",
+  "summary": "Depth is a natural way to increase the computational capacity in Transformers, yet the contribution of deeper layers can diminish as depth grows larger. Recent approaches enhance normalization (e.g., LayerNorm Scaling) or residual connections (e.g., mHC, AttnRes) to enable better information flow an",
+  "numComments": 1
+ },
+ {
+  "paper": {
+   "id": "2609.31948",
+   "title": "Duplex-MPE: Benchmarking Multi-Party Interaction in Full-Duplex Dialogue",
+   "summary": "Real-time full-duplex speech models can listen while speaking, enabling natural interaction without rigid turn boundaries. Existing benchmarks evaluate turn-taking, interruption handling and multi-round dialogue, but largely centre on a designated user rather than an assistant participating in a sha",
+   "upvotes": 60,
+   "publishedAt": "2026-09-25T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-09-29T00:00:00.000Z"
+  },
+  "publishedAt": "2026-09-24T20:00:00.000Z",
+  "title": "Duplex-MPE: Benchmarking Multi-Party Interaction in Full-Duplex Dialogue",
+  "summary": "Real-time full-duplex speech models can listen while speaking, enabling natural interaction without rigid turn boundaries. Existing benchmarks evaluate turn-taking, interruption handling and multi-round dialogue, but largely centre on a designated user rather than an assistant participating in a sha",
+  "numComments": 1
+ },
+ {
+  "paper": {
+   "id": "2609.34327",
+   "title": "Knowing When Thinking Is Not Enough: Teaching Small Reasoning Models to Reason Beyond Their Parametric Knowledge",
+   "summary": "Scaling test-time computation is a powerful way to improve language-model reasoning, and is particularly appealing for small reasoning models (sRMs) that are cheap to serve. However, is additional thinking always the right operation? By intervening at intermediate reasoning states across two model f",
+   "upvotes": 26,
+   "publishedAt": "2026-09-28T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-09-29T00:00:00.000Z"
+  },
+  "publishedAt": "2026-09-27T20:00:00.000Z",
+  "title": "Knowing When Thinking Is Not Enough: Teaching Small Reasoning Models to Reason Beyond Their Parametric Knowledge",
+  "summary": "Scaling test-time computation is a powerful way to improve language-model reasoning, and is particularly appealing for small reasoning models (sRMs) that are cheap to serve. However, is additional thinking always the right operation? By intervening at intermediate reasoning states across two model f",
+  "numComments": 1
+ }
+]

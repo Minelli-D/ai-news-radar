@@ -60,7 +60,7 @@ def test_runs_every_source_and_logs_one_summary_line(
         "deepseek",
         "google",
         "aws",
-        "ainewshub",
+        "huggingface",
     ]
     assert call["site_url"] == "https://d111111abcdef8.cloudfront.net"
     assert 50 < call["deadline"] - time.monotonic() <= 60

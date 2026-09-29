@@ -88,6 +88,7 @@ def build_snapshot(
                 "ok": error is None,
                 "error": error,
                 "lastSuccessAt": now if error is None else previous_success.get(source.slug),
+                "inAll": source.in_all,
             }
         )
 
@@ -127,10 +128,19 @@ def _text(parent: ET.Element, tag: str, value: str) -> ET.Element:
     return node
 
 
+def feed_items(snapshot: Snapshot | None) -> list[dict[str, Any]]:
+    """The newest FEED_ITEMS items of the sources shown in "All" (sources without "inAll",
+    from an older news.json, count as shown)."""
+    rows = [row for row in (snapshot or {}).get("sources", []) if isinstance(row, dict)]
+    hidden = {row.get("slug") for row in rows if row.get("inAll") is False}
+    items = (snapshot or {}).get("items", [])
+    return [item for item in items if item.get("source") not in hidden][:FEED_ITEMS]
+
+
 def render_feed(snapshot: Snapshot, site_url: str) -> bytes:
-    """RSS 2.0 with the newest FEED_ITEMS items across all sources."""
+    """RSS 2.0 with the newest FEED_ITEMS items across the sources shown in "All"."""
     site = site_url.rstrip("/")
-    names = {row["slug"]: row["name"] for row in snapshot["sources"]}
+    names = {row["slug"]: row["name"] for row in snapshot["sources"] if row.get("inAll", True)}
     ET.register_namespace("atom", ATOM_NS)
     rss = ET.Element("rss", {"version": "2.0"})
     channel = ET.SubElement(rss, "channel")
@@ -144,7 +154,7 @@ def render_feed(snapshot: Snapshot, site_url: str) -> bytes:
         f"{{{ATOM_NS}}}link",
         {"href": f"{site}/feed.xml", "rel": "self", "type": "application/rss+xml"},
     )
-    for item in snapshot["items"][:FEED_ITEMS]:
+    for item in feed_items(snapshot):
         node = ET.SubElement(channel, "item")
         _text(node, "title", item["title"])
         _text(node, "link", item["url"])
@@ -210,8 +220,7 @@ def plan_objects(snapshot: Snapshot, previous: Snapshot | None, site_url: str) -
     so it comes last: if an earlier upload fails, the next run still sees the change."""
     objects = []
     rewrite_all = previous is None or previous.get("version") != snapshot["version"]
-    previous_feed = (previous or {}).get("items", [])[:FEED_ITEMS]
-    if rewrite_all or previous_feed != snapshot["items"][:FEED_ITEMS]:
+    if rewrite_all or feed_items(previous) != feed_items(snapshot):
         objects.append(S3Object("feed.xml", render_feed(snapshot, site_url), RSS_TYPE))
     previous_slugs = {
         row.get("slug") for row in (previous or {}).get("sources", []) if isinstance(row, dict)

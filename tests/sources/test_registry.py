@@ -9,8 +9,13 @@ def test_slugs_match_the_public_latest_urls() -> None:
         "deepseek",
         "google",
         "aws",
-        "ainewshub",
+        "huggingface",
     ]
+
+
+def test_only_the_research_papers_are_kept_out_of_all() -> None:
+    # ~10 papers an hour would push the news off the homepage and the RSS feed.
+    assert [source.slug for source in SOURCES if not source.in_all] == ["huggingface"]
 
 
 def test_every_source_has_a_display_name_and_https_homepage() -> None:

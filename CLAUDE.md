@@ -5,8 +5,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project
 
 AI News Radar: a public portfolio project that aggregates AI news (Anthropic, OpenAI, DeepSeek,
-Google, AWS, AI News Hub) on a serverless AWS stack that must cost €0/month. GitHub repo:
-`Minelli-D/ai-news-radar` (the local folder is named `aws-ai-news`). AWS CLI profile: `minelli-d`.
+Google, AWS, plus Hugging Face papers) on a serverless AWS stack that must cost €0/month.
+GitHub repo: `Minelli-D/ai-news-radar` (the local folder is named `aws-ai-news`). AWS CLI
+profile: `minelli-d`.
 
 ## Owner's hard rules
 
@@ -58,6 +59,8 @@ node --test tests/site/*.test.mjs                             # unit tests for s
   (no inline script or style), because CloudFront only adds the managed security headers.
 - Filters and `/latest/*` shortcuts are generated from `news.json` → `sources`, so a new source
   needs no frontend change except a `.badge--<slug>` colour (white text must stay ≥ 4.5:1).
+- A source with `in_all=False` (`news.json` → `sources[].inAll`; only Hugging Face) is left out of
+  "All" and `feed.xml` because of its volume, but keeps its filter, radar slice and `/latest/` page.
 - `?v=dev` on asset URLs (including the `lib.mjs` import and the manifest's icons) is replaced
   with the git SHA at deploy time, so long-cached assets refresh.
 - Installable on iOS and Android (`manifest.webmanifest`, uploaded as `application/manifest+json`,
@@ -127,7 +130,7 @@ fragments (`base.parse_feed` picks it per field from feedparser's `*_detail.type
 `models.is_web_url` never raises: malformed URLs, bad ports, whitespace and URLs over 2048 chars
 are rejected.
 
-Known behaviour: slow sources (DeepSeek, AI News Hub) keep old posts in their newest 20. When TTL
+Known behaviour: slow sources (DeepSeek) keep old posts in their newest 20. When TTL
 removes those posts after 120 days they are re-inserted as "new", which is harmless and shows up
 as a spike in the `new` count.
 
@@ -151,7 +154,10 @@ Each module exposes `fetch(client) -> list[NewsItem]` and a `SOURCE` registered 
 - `anthropic`: no RSS. Parses the CMS JSON embedded in `self.__next_f.push` scripts on /news
   (title, ISO date, summary); falls back to the visible list. CSS module class hashes change, so
   match on `__title`, never on full class names.
-- `openai`, `ainewshub`: RSS (AI News Hub's /latest-a-i-news page has no dates, so use its blog feed).
+- `openai`: RSS.
+- `huggingface`: the official `api/daily_papers` JSON (50 papers, 50+ featured a day, unranked).
+  Keeps the 10 most upvoted per run, dated by `paper.submittedOnDailyAt` at noon UTC (top-level
+  `publishedAt` is the arXiv date, not the featured day). Links only to `/papers/<arXiv id>`.
 - `google`: two RSS feeds (Keyword AI section + DeepMind) as one source. `base.parse_feed` strips
   `<media:description>` because feedparser would otherwise use the image caption as the summary.
 - `aws`: What's New RSS, kept if AWS tags it AI (`marchitecture/artificial-intelligence`,

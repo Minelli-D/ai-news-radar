@@ -528,13 +528,13 @@ flow block `iam:*Provider*` until you upgrade to the Paid plan and activate adva
 | DeepSeek | https://api-docs.deepseek.com: no feed, so it reads the sitemap, then the newest announcement page |
 | Google | [Google AI blog](https://blog.google/innovation-and-ai/technology/ai/rss/) + [Google DeepMind blog](https://deepmind.google/blog/rss.xml) |
 | AWS | [What's New](https://aws.amazon.com/about-aws/whats-new/recent/feed/), filtered to AI/ML by AWS's own tags and title keywords |
-| AI News Hub | https://www.ainewshub.org/blog-feed.xml |
+| Hugging Face | [Daily Papers API](https://huggingface.co/api/daily_papers): the 10 most-upvoted papers each hour, under their own filter but left out of "All" and the RSS feed |
 
 | Path | What it is |
 |---|---|
 | `/` | The page: a 30-day radar per company, the latest 60 items grouped by day, and source health |
 | `/news.json` | Every source's latest items plus its health (CORS enabled) |
-| `/feed.xml` | A combined RSS 2.0 feed of the newest 60 items |
+| `/feed.xml` | A combined RSS 2.0 feed of the newest 60 news items (Hugging Face papers are left out) |
 | `/latest/<source>` | A redirect to that source's newest post |
 
 Only the title, link, date and a description of at most 200 characters are stored and shown.
@@ -551,5 +551,5 @@ human-in-the-loop workflow. I set the constraints and made the architecture call
 `terraform apply` and every push waited for my approval. The build journal is in
 [`docs/journey.html`](docs/journey.html).
 
-Not affiliated with Anthropic, OpenAI, Google, DeepSeek, Amazon or AI News Hub.
+Not affiliated with Anthropic, OpenAI, Google, DeepSeek, Amazon or Hugging Face.
 Released under the [MIT License](LICENSE).

@@ -1,7 +1,8 @@
 # Test fixtures
 
-Real responses captured on **2026-09-25** with the collector's User-Agent, then trimmed so the
-repository never republishes article bodies (see the content rules in the main README).
+Real responses captured on **2026-09-25** (Hugging Face: **2026-09-29**) with the collector's
+User-Agent, then trimmed so the repository never republishes article bodies (see the content
+rules in the main README).
 
 | File | Captured from | Trimming |
 |---|---|---|
@@ -12,7 +13,7 @@ repository never republishes article bodies (see the content rules in the main R
 | `google_ai_rss.xml` | https://blog.google/innovation-and-ai/technology/ai/rss/ | First 6 of 20 items |
 | `deepmind_rss.xml` | https://deepmind.google/blog/rss.xml | First 8 of 100 items |
 | `aws_whats_new_rss.xml` | https://aws.amazon.com/about-aws/whats-new/recent/feed/ | 17 hand-picked items (AI, non-AI, "agent" false positives); descriptions cut to 300 chars |
-| `ainewshub_blog_feed.xml` | https://www.ainewshub.org/blog-feed.xml | First 6 of 20 items |
+| `huggingface_daily_papers.json` | https://huggingface.co/api/daily_papers | 14 of 50 papers (the 12 most upvoted + 2 with ≤ 1 vote), API order kept; abstracts cut to 300 chars; authors, submitters, organizations and media removed |
 | `article_anthropic.html` | https://www.anthropic.com/news/accenture-embedded-evaluation | `<head>` meta tags only |
 | `article_deepmind.html` | https://deepmind.google/blog/introducing-gemini-38-live-with-live-avatar/ | `<head>` meta tags only |
 | `robots_aws.txt` | https://aws.amazon.com/robots.txt | none (uses wildcard rules) |
