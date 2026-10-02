@@ -2,7 +2,8 @@
 
 1. read each source's latest stored items (DynamoDB Query per source)
 2. fetch every source in parallel; a failing or hanging source never blocks the others
-3. keep the newest ITEMS_PER_SOURCE, drop known URLs, fill missing descriptions
+3. keep the newest ITEMS_PER_SOURCE, drop known URLs, apply a source's daily limit, fill
+   missing descriptions
 4. conditional-put the new items
 5. publish news.json (always) + feed.xml / latest/<slug> (only when changed)
 
@@ -19,7 +20,7 @@ from datetime import datetime
 from typing import Any, Protocol
 
 from collector.config import ITEMS_PER_SOURCE
-from collector.dedup import newest, select_new
+from collector.dedup import newest, select_new, within_daily_limit
 from collector.enrich import enrich
 from collector.http import DEFAULT_TIMEOUT, Fetcher, FetchError
 from collector.models import NewsItem
@@ -109,6 +110,8 @@ def _collect(
                 ", ".join(source.allowed_hosts),
             )
         fresh = select_new(newest(allowed, ITEMS_PER_SOURCE), stored)
+        if source.daily_limit is not None:
+            fresh = within_daily_limit(fresh, stored, source.daily_limit)
         fresh = enrich(
             fresh,
             client,

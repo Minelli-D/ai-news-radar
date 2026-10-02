@@ -1,5 +1,6 @@
 import threading
 from collections.abc import Callable, Sequence
+from dataclasses import replace
 from datetime import UTC, datetime
 
 import pytest
@@ -133,6 +134,18 @@ def test_only_each_sources_newest_20_items_are_considered() -> None:
 
     assert len(repo.puts) == 20
     assert min(item.published_at for item in repo.puts) == datetime(2026, 9, 7, 12, 0, tzinfo=UTC)
+
+
+def test_a_source_with_a_daily_limit_stores_at_most_that_many_per_day() -> None:
+    day = datetime(2026, 9, 24, 12, 0, tzinfo=UTC)
+    known = replace(news("alpha", 1), published_at=day)
+    fetched = [replace(news("alpha", n), published_at=day) for n in range(2, 6)]
+    limited = replace(source("alpha", returning(known, *fetched)), daily_limit=3)
+
+    report, repo, _ = execute([limited], repo=FakeRepository([known]))
+
+    assert [item.title for item in repo.puts] == ["alpha post 2", "alpha post 3"]
+    assert report.summary()["new"] == {"alpha": 2}
 
 
 def test_new_items_without_description_are_enriched() -> None:

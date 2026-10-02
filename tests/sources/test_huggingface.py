@@ -11,14 +11,16 @@ from collector.sources.base import ParseError
 from tests.conftest import fixture_bytes
 from tests.fakes import FakeHttp
 
-API = "https://huggingface.co/api/daily_papers"
+# Yesterday's list: its votes have settled (see _just_after_midnight).
+API = "https://huggingface.co/api/daily_papers?date=2026-09-29"
 FEATURED = datetime(2026, 9, 29, 12, 0, tzinfo=UTC)
 
 
 @pytest.fixture(autouse=True)
-def _captured_on_2026_09_29(monkeypatch: pytest.MonkeyPatch) -> None:
-    # This fixture was captured four days after the others (see tests/fixtures/README.md).
-    monkeypatch.setattr(models, "utcnow", lambda: datetime(2026, 9, 29, 15, 0, tzinfo=UTC))
+def _just_after_midnight(monkeypatch: pytest.MonkeyPatch) -> None:
+    # The fixture is the 2026-09-29 list (captured four days after the other fixtures), so the
+    # run happens on the 30th, when the 29th is "yesterday".
+    monkeypatch.setattr(models, "utcnow", lambda: datetime(2026, 9, 30, 0, 10, tzinfo=UTC))
 
 
 def papers() -> list[dict[str, Any]]:
@@ -30,7 +32,7 @@ def fetch(rows: Any) -> list[NewsItem]:
     return huggingface.fetch(FakeHttp({API: json.dumps(rows).encode()}))
 
 
-def test_keeps_the_ten_most_upvoted_papers_in_one_request() -> None:
+def test_keeps_yesterdays_five_most_upvoted_papers_in_one_request() -> None:
     http = FakeHttp({API: fixture_bytes("huggingface_daily_papers.json")})
 
     items = huggingface.fetch(http)
@@ -41,12 +43,7 @@ def test_keeps_the_ten_most_upvoted_papers_in_one_request() -> None:
         "2609.29233",  # 77
         "2609.31948",  # 60
         "2609.35457",  # 50
-        "2609.32577",  # 37
-        "2609.35767",  # 30
-        "2609.34327",  # 26
-        "2609.33378",  # 25
-        "2609.35560",  # 22
-        "2609.32534",  # 22; the papers with 19, 15, 1 and 0 upvotes are left out
+        "2609.32577",  # 37; the papers with 30 upvotes or fewer are left out
     ]
 
 
@@ -74,8 +71,8 @@ def test_papers_with_an_unexpected_id_or_title_are_skipped() -> None:
 
     assert "2609.35347" not in ids
     assert "2609.29233" not in ids
-    assert len(ids) == 10  # the next most upvoted papers take their places
-    assert ids[-2:] == ["2609.33848", "2609.33382"]  # 19 and 15 upvotes
+    assert len(ids) == 5  # the next most upvoted papers take their places
+    assert ids[-2:] == ["2609.35767", "2609.34327"]  # 30 and 26 upvotes
 
 
 @pytest.mark.parametrize(
@@ -83,7 +80,6 @@ def test_papers_with_an_unexpected_id_or_title_are_skipped() -> None:
     [
         b"<html><body>Just a moment...</body></html>",
         b"",
-        b"[]",
         b'{"error": "rate limited"}',
         b'[{"paper": {"id": "not-an-arxiv-id", "title": "x"}}, 3, "text"]',
     ],
@@ -91,6 +87,17 @@ def test_papers_with_an_unexpected_id_or_title_are_skipped() -> None:
 def test_a_response_without_usable_papers_is_a_parse_error(body: bytes) -> None:
     with pytest.raises(ParseError):
         huggingface.fetch(FakeHttp({API: body}))
+
+
+def test_a_day_without_papers_is_not_an_error() -> None:
+    # Weekends have an empty list (checked on 2026-10-02: the 26th and 27th return []).
+    assert huggingface.fetch(FakeHttp({API: b"[]"})) == []
+
+
+def test_the_source_stores_at_most_five_papers_a_day() -> None:
+    # Votes keep moving all day, so the top five changes between runs: the pipeline's daily
+    # limit (counting stored papers) is what keeps it at five.
+    assert huggingface.SOURCE.daily_limit == 5
 
 
 def test_every_item_is_on_the_sources_allowed_hosts() -> None:

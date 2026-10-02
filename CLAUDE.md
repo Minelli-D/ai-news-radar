@@ -155,9 +155,11 @@ Each module exposes `fetch(client) -> list[NewsItem]` and a `SOURCE` registered 
   (title, ISO date, summary); falls back to the visible list. CSS module class hashes change, so
   match on `__title`, never on full class names.
 - `openai`: RSS.
-- `huggingface`: the official `api/daily_papers` JSON (50 papers, 50+ featured a day, unranked).
-  Keeps the 10 most upvoted per run, dated by `paper.submittedOnDailyAt` at noon UTC (top-level
-  `publishedAt` is the arXiv date, not the featured day). Links only to `/papers/<arXiv id>`.
+- `huggingface`: the official `api/daily_papers?date=<yesterday>` JSON (50 papers, unranked; `[]`
+  on weekends). Yesterday's votes have settled, so it keeps that day's 5 most upvoted, and
+  `Source.daily_limit=5` (applied in `pipeline._collect`, counting stored items per UTC day) stops
+  later runs from adding more when the ranking shifts. Dated by `paper.submittedOnDailyAt` at noon
+  UTC (top-level `publishedAt` is the arXiv date). Links only to `/papers/<arXiv id>`.
 - `google`: two RSS feeds (Keyword AI section + DeepMind) as one source. `base.parse_feed` strips
   `<media:description>` because feedparser would otherwise use the image caption as the summary.
 - `aws`: What's New RSS, kept if AWS tags it AI (`marchitecture/artificial-intelligence`,

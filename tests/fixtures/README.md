@@ -13,7 +13,7 @@ rules in the main README).
 | `google_ai_rss.xml` | https://blog.google/innovation-and-ai/technology/ai/rss/ | First 6 of 20 items |
 | `deepmind_rss.xml` | https://deepmind.google/blog/rss.xml | First 8 of 100 items |
 | `aws_whats_new_rss.xml` | https://aws.amazon.com/about-aws/whats-new/recent/feed/ | 17 hand-picked items (AI, non-AI, "agent" false positives); descriptions cut to 300 chars |
-| `huggingface_daily_papers.json` | https://huggingface.co/api/daily_papers | 14 of 50 papers (the 12 most upvoted + 2 with ≤ 1 vote), API order kept; abstracts cut to 300 chars; authors, submitters, organizations and media removed |
+| `huggingface_daily_papers.json` | https://huggingface.co/api/daily_papers (the 2026-09-29 list) | 14 of 50 papers (the 12 most upvoted + 2 with ≤ 1 vote), API order kept; abstracts cut to 300 chars; authors, submitters, organizations and media removed |
 | `article_anthropic.html` | https://www.anthropic.com/news/accenture-embedded-evaluation | `<head>` meta tags only |
 | `article_deepmind.html` | https://deepmind.google/blog/introducing-gemini-38-live-with-live-avatar/ | `<head>` meta tags only |
 | `robots_aws.txt` | https://aws.amazon.com/robots.txt | none (uses wildcard rules) |

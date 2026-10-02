@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from collector.dedup import newest, select_new
+from collector.dedup import newest, select_new, within_daily_limit
 from collector.models import NewsItem
 
 
@@ -46,3 +46,24 @@ def test_newest_sorts_by_date_and_caps() -> None:
     ]
 
     assert [i.url for i in newest(items, 2)] == ["https://x.com/2", "https://x.com/3"]
+
+
+def test_the_daily_limit_counts_what_is_already_stored_for_that_day() -> None:
+    stored = [news("https://openai.com/index/a", day=1), news("https://openai.com/index/b", day=2)]
+    fresh = [
+        news("https://openai.com/index/c", day=1),
+        news("https://openai.com/index/d", day=1),
+        news("https://openai.com/index/e", day=2),
+        news("https://openai.com/index/f", day=3),
+    ]
+
+    kept = within_daily_limit(fresh, stored, 2)
+
+    # Days 1 and 2 already hold one item each, so one more fits on each; day 3 starts empty.
+    assert [item.url[-1] for item in kept] == ["c", "e", "f"]
+
+
+def test_the_daily_limit_keeps_the_adapters_order() -> None:
+    fresh = [news(f"https://openai.com/index/{name}") for name in "xyz"]
+
+    assert [item.url[-1] for item in within_daily_limit(fresh, [], 2)] == ["x", "y"]

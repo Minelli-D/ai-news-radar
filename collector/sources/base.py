@@ -43,6 +43,8 @@ class Source:
     # False keeps a high-volume source (research papers) out of the site's "All" view and
     # feed.xml; it still has its own filter, radar slice and /latest/<slug> page.
     in_all: bool = True
+    # At most this many items per UTC day (counting stored ones); None means no limit.
+    daily_limit: int | None = None
 
     def allows(self, url: str) -> bool:
         try:

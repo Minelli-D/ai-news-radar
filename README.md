@@ -528,7 +528,7 @@ flow block `iam:*Provider*` until you upgrade to the Paid plan and activate adva
 | DeepSeek | https://api-docs.deepseek.com: no feed, so it reads the sitemap, then the newest announcement page |
 | Google | [Google AI blog](https://blog.google/innovation-and-ai/technology/ai/rss/) + [Google DeepMind blog](https://deepmind.google/blog/rss.xml) |
 | AWS | [What's New](https://aws.amazon.com/about-aws/whats-new/recent/feed/), filtered to AI/ML by AWS's own tags and title keywords |
-| Hugging Face | [Daily Papers API](https://huggingface.co/api/daily_papers): the 10 most-upvoted papers each hour, under their own filter but left out of "All" and the RSS feed |
+| Hugging Face | [Daily Papers API](https://huggingface.co/api/daily_papers): the 5 most-upvoted papers of each day, added the next day once the votes have settled, under their own filter but left out of "All" and the RSS feed |
 
 | Path | What it is |
 |---|---|

@@ -1,14 +1,17 @@
 """Hugging Face Papers: the community's daily list of AI papers, from its official JSON API.
 
-The list holds 50 or more papers a day in no particular order, so each run keeps the most
-upvoted ones. A paper that climbs later in the day is picked up by a later run.
+A day's list holds 50 or more papers in no particular order, and votes keep coming in all day.
+So each run reads YESTERDAY's list, whose votes have settled, and keeps its most upvoted
+papers; the source's daily_limit (applied by the pipeline, counting stored papers) stops later
+runs from adding more when the ranking shifts. Weekends have an empty list.
 """
 
 import json
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
+from collector import models
 from collector.http import Fetcher
 from collector.models import NewsItem, make_item
 from collector.sources.base import ParseError, Source, at_noon_utc, default_client
@@ -16,19 +19,22 @@ from collector.sources.base import ParseError, Source, at_noon_utc, default_clie
 SLUG = "huggingface"
 API_URL = "https://huggingface.co/api/daily_papers"
 PAPER_URL = "https://huggingface.co/papers/{}"
-TOP_PAPERS = 10
+TOP_PAPERS = 5
 
 _ARXIV_ID_RE = re.compile(r"\d{4}\.\d{4,5}")
 
 
 def fetch(client: Fetcher | None = None) -> list[NewsItem]:
-    body = (client or default_client()).get(API_URL)
+    yesterday = (models.utcnow() - timedelta(days=1)).date()
+    body = (client or default_client()).get(f"{API_URL}?date={yesterday.isoformat()}")
     try:
         rows = json.loads(body)
     except ValueError as err:
         raise ParseError("daily papers response is not JSON") from err
     if not isinstance(rows, list):
         raise ParseError("daily papers response is not a list")
+    if not rows:
+        return []  # no papers that day (weekends)
     papers = [row["paper"] for row in rows if isinstance(row, dict) and "paper" in row]
     ranked = sorted((p for p in papers if isinstance(p, dict)), key=_upvotes, reverse=True)
     items = [item for item in map(_item, ranked) if item]
@@ -72,4 +78,5 @@ SOURCE = Source(
     fetch=fetch,
     allowed_hosts=("huggingface.co",),
     in_all=False,
+    daily_limit=TOP_PAPERS,
 )
