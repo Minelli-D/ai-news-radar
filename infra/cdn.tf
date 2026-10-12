@@ -1,4 +1,4 @@
-# Default *.cloudfront.net domain (no custom domain, Route 53 or ACM), PriceClass_100,
+# Custom domain (domain.tf) next to the default *.cloudfront.net one, PriceClass_100,
 # pay-as-you-go: our traffic is ~1% of the always-free 1 TB / 10M requests.
 #
 # Only AWS-managed cache/header policies, no logging and a single behavior, so the
@@ -36,6 +36,7 @@ resource "aws_cloudfront_distribution" "site" {
   http_version        = "http2and3"
   is_ipv6_enabled     = true
   price_class         = "PriceClass_100"
+  aliases             = [var.site_domain]
 
   origin {
     origin_id                = "site-bucket"
@@ -66,7 +67,10 @@ resource "aws_cloudfront_distribution" "site" {
     }
   }
 
+  # SNI is free; a dedicated IP ("vip") costs $600 a month.
   viewer_certificate {
-    cloudfront_default_certificate = true
+    acm_certificate_arn      = data.aws_acm_certificate.site.arn
+    ssl_support_method       = "sni-only"
+    minimum_protocol_version = "TLSv1.2_2021"
   }
 }
