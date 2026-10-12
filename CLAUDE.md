@@ -30,7 +30,8 @@ profile: `minelli-d`.
 ## AWS account (profile `minelli-d`)
 
 A dedicated account on the Paid plan (with credits), signed in with `aws login`; everything
-lives in eu-north-1. It has no AWS-managed SCPs, so the GitHub OIDC provider could be created.
+lives in eu-north-1, except the site's ACM certificate (us-east-1, which CloudFront requires).
+It has no AWS-managed SCPs, so the GitHub OIDC provider could be created.
 `bootstrap/` was applied on 2026-09-27; its state is local (`bootstrap/terraform.tfstate`,
 git-ignored). The first account, `awsnew`, is no longer used: its SCPs denied `iam:*Provider*`
 and every Region except eu-north-1. Verify with read-only calls before assuming anything changed.
@@ -80,7 +81,13 @@ signature). Local checks without credentials:
 ### Terraform stacks
 
 - `bootstrap/` (local state, run once by the owner): state bucket, GitHub OIDC provider, CI
-  roles, permissions boundary, $5 budget (credits excluded), account-level S3 Block Public Access.
+  roles, permissions boundary, $5 budget (credits excluded), account-level S3 Block Public Access,
+  and the site's ACM certificate (`bootstrap/domain.tf`, DNS-validated in the existing
+  `minelli-d.co.uk` hosted zone, which is looked up and never created).
+- Custom domain `ai-news.minelli-d.co.uk`: `site_domain` and `dns_zone` must be the same in both
+  stacks. `infra/domain.tf` looks the certificate up (it must already be ISSUED, so bootstrap is
+  applied first) and owns the A/AAAA alias records. The deploy role may write only A/AAAA
+  records named exactly `site_domain`; changing the domain means re-applying bootstrap first.
 - The CI roles are scoped to fixed names, and `infra/` must use them: table `ai-news-items`,
   bucket `ai-news-radar-site-<account id>`, state key prefix `infra/`, and every function, role,
   log group (`/aws/lambda/…`), schedule, SNS topic and alarm prefixed `ai-news-radar-app-`. Every

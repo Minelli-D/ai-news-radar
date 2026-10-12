@@ -11,9 +11,9 @@ AWS service is there, which alternatives I rejected, and what every choice costs
 and complexity.
 
 It runs in production for **about one cent a month**:
-[live site](https://d1tgqahtdqvv2q.cloudfront.net) ·
-[feed.xml](https://d1tgqahtdqvv2q.cloudfront.net/feed.xml) ·
-[news.json](https://d1tgqahtdqvv2q.cloudfront.net/news.json)
+[live site](https://ai-news.minelli-d.co.uk) ·
+[feed.xml](https://ai-news.minelli-d.co.uk/feed.xml) ·
+[news.json](https://ai-news.minelli-d.co.uk/news.json)
 
 **Contents:**
 [The workload](#the-workload-and-its-constraints) ·
@@ -201,6 +201,9 @@ Expand a decision to read it.
     (OAC). The bucket policy allows `s3:GetObject` only when `AWS:SourceArn` is this distribution.
   - *Policies:* only AWS-managed ones, `CachingOptimized` and `CORS-and-SecurityHeadersPolicy`.
   - *Delivery:* HTTP/2 and HTTP/3, IPv6, compression, `redirect-to-https`, `PriceClass_100`.
+  - *Domain:* `ai-news.minelli-d.co.uk`, as Route 53 alias records in a hosted zone the account
+    already had, with a free ACM certificate (issued in us-east-1, as CloudFront requires)
+    served over SNI. The project never creates a hosted zone.
 - **Why:**
   - The bucket is never public: the CDN is the single entry point.
   - S3 Standard stores every object across at least three Availability Zones. CloudFront
@@ -217,7 +220,6 @@ Expand a decision to read it.
   - *S3 static website hosting:* it needs a public bucket, its endpoint is HTTP only, and it
     cannot use OAC.
   - *Origin Access Identity (OAI):* the legacy mechanism that OAC replaces.
-  - *A custom domain:* a Route 53 hosted zone is paid (see [At scale](#limits-and-what-i-would-change-at-scale)).
 - **Trade-off:** `PriceClass_100` serves only from edge locations in North America and Europe,
   so readers elsewhere see more latency. It caps the per-GB price if traffic ever outgrows the
   free tier.
@@ -324,7 +326,9 @@ Expand a decision to read it.
 
 - **`bootstrap/`** (local state, applied once by the owner) holds:
   - the state bucket, the OIDC provider, the CI roles and the permissions boundary;
-  - the budget and the account-level Block Public Access.
+  - the budget and the account-level Block Public Access;
+  - the site's TLS certificate, so the pipeline can attach it but never needs permission to
+    request one. In the hosted zone it may write only the site's own A/AAAA records.
 
   It solves the chicken-and-egg problem (CI needs the state bucket and its roles before it can
   run) and keeps the root of trust out of CI's reach.
@@ -422,11 +426,16 @@ throttles. The site bucket holds 15 objects (123 KB), and a month has about 744 
 | CloudWatch Logs | a few MB, kept 7 days | < $0.01 | 5 GB | $0 |
 | EventBridge Scheduler | 744 invocations | < $0.01 | 14M invocations | $0 |
 | SNS, Budgets, IAM, OIDC provider | a handful of emails | $0 | free | $0 |
+| ACM certificate, Route 53 alias queries | 1 public certificate, 2 alias records | $0 | free | $0 |
 | **S3** (site and state buckets) | ~1,650 PUT/LIST, ~4,000 GET, 0.25 MB | ≈ $0.01 | **none** | **≈ $0.01** |
 | **Total** | | **≈ $3.26** | | **≈ $0.01** |
 
 About 96% of the list price is DynamoDB provisioned capacity. That is why the table stays at
 5/5: the account-wide total must stay within 25/25 for the bill to stay at zero.
+
+The custom domain adds nothing to this bill: public ACM certificates and alias queries to
+CloudFront are free. Its records live in a hosted zone that already existed in the account
+($0.50 a month, with or without this project), which is why the zone is not counted here.
 
 ---
 
@@ -436,7 +445,6 @@ About 96% of the list price is DynamoDB provisioned capacity. That is why the ta
 |---|---|---|
 | The site needed to survive a Region outage | Replicate the bucket with S3 Cross-Region Replication, put a CloudFront origin group in front for failover, and use DynamoDB global tables with a schedule in each Region (writes are already idempotent) | The data is rebuildable from the sources, and a second Region breaks the €0 goal |
 | There were hundreds of sources | Fan out with one Lambda invocation per source (a Step Functions Map state or SQS) instead of threads in one 60-second function | Six sources finish in seconds |
-| It needed its own domain | Route 53 plus an ACM certificate (issued in us-east-1 for CloudFront), and the CSP as a response header instead of a `<meta>` tag | A hosted zone costs $0.50 a month |
 | Abuse became a risk | CloudFront's flat-rate Free plan, which caps the bill even under attack, or AWS WAF rate-based rules | The flat-rate plan needs a WAF web ACL and Terraform cannot manage it yet; WAF on its own is paid |
 | Write volume grew | On-demand capacity or auto scaling, and time-bucketed partition keys so one busy source doesn't become a hot partition | 5 WCU is plenty today |
 | Operations needed deeper insight | Per-source custom metrics (Embedded Metric Format) and X-Ray traces | The JSON summary line answers every question so far |
@@ -452,6 +460,8 @@ About 96% of the list price is DynamoDB provisioned capacity. That is why the ta
 |---|---|
 | Origin Access Control, bucket policy scoped with `AWS:SourceArn` | [`infra/cdn.tf`](infra/cdn.tf), [`infra/site.tf`](infra/site.tf) |
 | Managed cache and response-headers policies, custom 404 page | [`infra/cdn.tf`](infra/cdn.tf) |
+| ACM certificate in us-east-1 with DNS validation, Route 53 alias records to CloudFront | [`bootstrap/domain.tf`](bootstrap/domain.tf), [`infra/domain.tf`](infra/domain.tf) |
+| Route 53 writes limited to one record name and type with IAM condition keys | [`bootstrap/github_permissions.tf`](bootstrap/github_permissions.tf) |
 | S3 Block Public Access (account and bucket), `BucketOwnerEnforced`, deny non-TLS | [`bootstrap/guardrails.tf`](bootstrap/guardrails.tf), [`infra/site.tf`](infra/site.tf) |
 | Lambda on arm64, JSON logging, asynchronous invoke configuration | [`infra/collector.tf`](infra/collector.tf) |
 | EventBridge Scheduler role with `aws:SourceAccount`, retry policy | [`infra/collector.tf`](infra/collector.tf) |
@@ -491,6 +501,8 @@ flow block `iam:*Provider*` until you upgrade to the Paid plan and activate adva
 
 1. **Fork and clone** the repository.
    - Set `github_repository` in `bootstrap/` and `infra/`.
+   - Set `site_domain` and `dns_zone` in `bootstrap/` and `infra/` to a name in a Route 53
+     public hosted zone your account already has.
    - Set `github_oidc_subject_prefix` in `bootstrap/` to the output of
      `gh api repos/<owner>/<name>/actions/oidc/customization/sub`. If it is wrong, the deploy
      fails with "Not authorized to perform sts:AssumeRoleWithWebIdentity".
