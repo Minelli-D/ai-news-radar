@@ -11,7 +11,10 @@ One-time setup, run locally with your own AWS credentials. It creates:
 - `ai-news-radar-workload-boundary`: the permissions boundary every role created by the deploy
   pipeline must carry (so CI cannot mint an over-privileged role);
 - a monthly AWS Budget (default $5, credits excluded) with email alerts at 50% and 100%;
-- account-level S3 Block Public Access (the site is only reachable through CloudFront + OAC).
+- account-level S3 Block Public Access (the site is only reachable through CloudFront + OAC);
+- the site's TLS certificate (ACM, in us-east-1 because CloudFront requires it) and its DNS
+  validation record in the existing Route 53 hosted zone. The CI roles can read the certificate
+  and write only the site's own A/AAAA records, nothing else in the zone.
 
 ## Run
 
@@ -25,8 +28,12 @@ terraform apply tfplan
 terraform output github_actions_variables     # copy into GitHub: Settings > Secrets and variables > Actions > Variables
 ```
 
-Everything here is free: IAM, OIDC providers and budgets without actions cost nothing, and the
-state bucket holds a few KB.
+Everything here is free: IAM, OIDC providers, budgets without actions and public ACM
+certificates cost nothing, and the state bucket holds a few KB. The hosted zone named by
+`dns_zone` must already exist: this stack looks it up and never creates one.
+
+Apply this stack before the first deploy that uses the custom domain: `infra/` expects to find
+the certificate already issued.
 
 ## Afterwards
 
