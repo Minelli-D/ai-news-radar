@@ -7,3 +7,5 @@ alert_email = "you@example.com"
 # lambda_zip_path     = "../build/collector.zip"
 # schedule_expression = "rate(1 hour)"
 # log_retention_days  = 7
+# site_domain         = "ai-news.minelli-d.co.uk"
+# dns_zone            = "minelli-d.co.uk"

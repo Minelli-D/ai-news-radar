@@ -118,13 +118,28 @@ data "aws_iam_policy_document" "github_read" {
     resources = [local.arn.alarms, local.arn.log_groups, local.arn.topics]
   }
 
+  # infra/ looks up the site certificate (issued in domain.tf) and the hosted zone by name.
+  statement {
+    sid       = "DescribeSiteCertificate"
+    actions   = ["acm:DescribeCertificate", "acm:GetCertificate", "acm:ListTagsForCertificate"]
+    resources = [local.arn.certificates]
+  }
+
+  statement {
+    sid       = "DescribeDnsZone"
+    actions   = ["route53:GetHostedZone", "route53:ListResourceRecordSets", "route53:ListTagsForResource"]
+    resources = [local.arn.dns_zone]
+  }
+
   statement {
     sid = "DescribeWithoutResourceLevelSupport"
     actions = [
+      "acm:ListCertificates",
       "cloudfront:Get*",
       "cloudfront:List*",
       "cloudwatch:DescribeAlarms",
       "logs:DescribeLogGroups",
+      "route53:ListHostedZones",
     ]
     resources = ["*"]
   }
@@ -270,6 +285,32 @@ data "aws_iam_policy_document" "github_deploy_edge" {
       "cloudfront:UpdateOriginAccessControl",
     ]
     resources = ["*"] # CloudFront create/list APIs do not support resource-level scoping
+  }
+
+  # DNS hijack guard: in the whole zone, the deploy role may only write the site's own name,
+  # and only the two record types an alias to CloudFront uses.
+  statement {
+    sid       = "ManageSiteDnsRecords"
+    actions   = ["route53:ChangeResourceRecordSets"]
+    resources = [local.arn.dns_zone]
+
+    condition {
+      test     = "ForAllValues:StringEquals"
+      variable = "route53:ChangeResourceRecordSetsNormalizedRecordNames"
+      values   = [var.site_domain]
+    }
+
+    condition {
+      test     = "ForAllValues:StringEquals"
+      variable = "route53:ChangeResourceRecordSetsRecordTypes"
+      values   = ["A", "AAAA"]
+    }
+  }
+
+  statement {
+    sid       = "WaitForDnsChanges"
+    actions   = ["route53:GetChange"]
+    resources = [local.arn.dns_changes]
   }
 
   statement {

@@ -88,7 +88,7 @@ resource "aws_lambda_function" "collector" {
     variables = {
       TABLE_NAME  = aws_dynamodb_table.news.name
       BUCKET_NAME = aws_s3_bucket.site.bucket
-      SITE_URL    = "https://${aws_cloudfront_distribution.site.domain_name}"
+      SITE_URL    = "https://${var.site_domain}"
       REPO_URL    = "https://github.com/${var.github_repository}"
     }
   }

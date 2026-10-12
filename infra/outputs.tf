@@ -1,6 +1,6 @@
 output "site_url" {
   description = "Public URL of the site."
-  value       = "https://${aws_cloudfront_distribution.site.domain_name}"
+  value       = "https://${var.site_domain}"
 }
 
 output "cloudfront_distribution_id" {

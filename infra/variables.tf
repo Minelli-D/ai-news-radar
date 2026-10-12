@@ -4,6 +4,18 @@ variable "region" {
   default     = "eu-north-1"
 }
 
+variable "site_domain" {
+  description = "Custom domain of the site (must match bootstrap, which issues its certificate)."
+  type        = string
+  default     = "ai-news.minelli-d.co.uk"
+}
+
+variable "dns_zone" {
+  description = "Existing Route 53 public hosted zone that holds site_domain (must match bootstrap)."
+  type        = string
+  default     = "minelli-d.co.uk"
+}
+
 variable "alert_email" {
   description = "Email subscribed to the collector error alarm (confirm the SNS email once)."
   type        = string

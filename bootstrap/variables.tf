@@ -26,6 +26,28 @@ variable "github_oidc_subject_prefix" {
   }
 }
 
+variable "site_domain" {
+  description = "Custom domain of the site (must match infra). A lowercase name inside dns_zone."
+  type        = string
+  default     = "ai-news.minelli-d.co.uk"
+
+  validation {
+    condition     = can(regex("^[a-z0-9-]+(\\.[a-z0-9-]+)+$", var.site_domain))
+    error_message = "site_domain must be a lowercase DNS name without a trailing dot, e.g. ai-news.minelli-d.co.uk."
+  }
+
+  validation {
+    condition     = endswith(var.site_domain, ".${var.dns_zone}")
+    error_message = "site_domain must be a name inside dns_zone."
+  }
+}
+
+variable "dns_zone" {
+  description = "Existing Route 53 public hosted zone that holds site_domain (must match infra). It is looked up, never created."
+  type        = string
+  default     = "minelli-d.co.uk"
+}
+
 variable "alert_email" {
   description = "Email address for AWS Budgets alerts (keep it in terraform.tfvars, which is git-ignored)."
   type        = string

@@ -27,6 +27,11 @@ locals {
     topics       = "arn:${local.partition}:sns:${local.region}:${local.account_id}:${local.app_prefix}-*"
     alarms       = "arn:${local.partition}:cloudwatch:${local.region}:${local.account_id}:alarm:${local.app_prefix}-*"
     boundary     = "arn:${local.partition}:iam::${local.account_id}:policy/${local.project}-workload-boundary"
+    # Every certificate in us-east-1, not only the current one: infra/ looks the certificate
+    # up by domain name, and must still be able to while a replacement is being rolled out.
+    certificates = "arn:${local.partition}:acm:us-east-1:${local.account_id}:certificate/*"
+    dns_zone     = data.aws_route53_zone.site.arn
+    dns_changes  = "arn:${local.partition}:route53:::change/*"
     github_oidc  = var.create_github_oidc_provider ? aws_iam_openid_connect_provider.github[0].arn : data.aws_iam_openid_connect_provider.github[0].arn
   }
 }
