@@ -4,5 +4,5 @@ beautifulsoup4==4.15.0
 feedparser==6.0.14
 feedparser-sgmllib==2.1.0
 protego==0.7.0
-soupsieve==2.10
+soupsieve==3.0.4
 typing-extensions==4.16.0
