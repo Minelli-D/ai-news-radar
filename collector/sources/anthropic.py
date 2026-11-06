@@ -24,6 +24,7 @@ BASE_URL = "https://www.anthropic.com"
 NEWS_URL = f"{BASE_URL}/news"
 
 _PUSH_RE = re.compile(r'self\.__next_f\.push\(\[1,"((?:[^"\\]|\\.)*)"\]\)', re.S)
+POST_TYPES = frozenset({"post", "article"})
 _SLUG_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9-]*$")
 _VISIBLE_DATE_RE = re.compile(r"^([A-Z][a-z]{2}) (\d{1,2}), (\d{4})$")
 _MONTHS = {
@@ -64,7 +65,8 @@ def _embedded_posts(flight: str) -> dict[str, dict[str, Any]]:
         except json.JSONDecodeError:
             continue
         for post in array if isinstance(array, list) else []:
-            if not isinstance(post, dict) or post.get("_type") != "post":
+            # the CMS renamed "post" to "article" in late October 2026; accept both
+            if not isinstance(post, dict) or post.get("_type") not in POST_TYPES:
                 continue
             slug_field = post.get("slug")
             slug = slug_field.get("current") if isinstance(slug_field, dict) else None
@@ -91,9 +93,16 @@ def _directory(post: dict[str, Any]) -> str:
 
 
 def _published(post: dict[str, Any]) -> datetime | None:
+    value = post.get("publishedOn")
+    if not isinstance(value, str):
+        return None
     try:
-        return datetime.fromisoformat(post["publishedOn"])
-    except (KeyError, TypeError, ValueError):
+        # the CMS now sends date-only values ("2026-10-28"): store them at noon UTC like the
+        # visible list does, so the day reads the same in every time zone
+        if len(value) == 10:
+            return at_noon_utc(date.fromisoformat(value))
+        return datetime.fromisoformat(value)
+    except ValueError:
         return None
 
 
