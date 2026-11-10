@@ -158,9 +158,10 @@ pass `tests/fakes.FakeHttp`.
 Each module exposes `fetch(client) -> list[NewsItem]` and a `SOURCE` registered in
 `sources/__init__.py`. Slugs are public URLs (`/latest/<slug>`, site filters): do not rename them.
 
-- `anthropic`: no RSS. Parses the CMS JSON embedded in `self.__next_f.push` scripts on /news
-  (title, ISO date, summary); falls back to the visible list. CSS module class hashes change, so
-  match on `__title`, never on full class names.
+- `anthropic`: no RSS. Parses CMS JSON embedded in `self.__next_f.push` scripts on /news
+  (title, date, summary), accepting both `_type: "post"` and `_type: "article"`; date-only values
+  are stored at noon UTC. Falls back to headings and dates in the visible list. CSS module hashes
+  change, so never match full class names.
 - `openai`: RSS.
 - `huggingface`: the official `api/daily_papers?date=<yesterday>` JSON (50 papers, unranked; `[]`
   on weekends). Yesterday's votes have settled, so it keeps that day's 5 most upvoted, and

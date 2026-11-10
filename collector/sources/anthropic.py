@@ -138,7 +138,10 @@ def _from_visible_list(page: str) -> list[NewsItem]:
     for link in soup.select('a[href^="/news/"]'):
         url = urljoin(BASE_URL, str(link["href"]))
         time_tag = link.find("time")
-        title_tag = link.select_one('[class*="__title"]')
+        # Anthropic's current list uses an h3 inside the link instead of the old
+        # CSS-module `__title` element. Prefer a heading; retain the old selector
+        # as a fallback for older markup.
+        title_tag = link.select_one("h1, h2, h3, [class*='__title']")
         day = _visible_date(time_tag.get_text()) if time_tag else None
         if url in seen or title_tag is None or day is None:
             continue
