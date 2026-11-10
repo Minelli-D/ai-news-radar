@@ -5,7 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 **This repository is about the infrastructure, not the app.** The application is deliberately
-simple: once an hour it collects AI news headlines from six publishers and publishes them as a
+simple: every six hours it collects AI news headlines from six publishers and publishes them as a
 web page, an RSS feed and a JSON file. That leaves the attention on the architecture: why each
 AWS service is there, which alternatives I rejected, and what every choice costs in money, risk
 and complexity.
@@ -35,10 +35,10 @@ Almost every decision below follows from the shape of the workload:
 
 | Property | Value | Consequence |
 |---|---|---|
-| **Writes** | One batch per hour that runs for about 9 seconds | Compute is needed for seconds per hour, so it must be pay-per-use |
+| **Writes** | One batch every six hours that runs for about 9 seconds | Compute is needed for seconds per run, so it must be pay-per-use |
 | **Reads** | Any time, any volume, and every reader gets the same answer | The answer can be computed once and cached at the edge |
 | **Data size** | A 43 KB snapshot; the table holds less than 1 MB | Storage and scaling are non-issues; access patterns are what matter |
-| **Freshness** | News, not trading: up to 1 hour plus 5 minutes of cache is fine | Expire caches with a TTL instead of invalidating them |
+| **Freshness** | News, not trading: up to 6 hours plus 5 minutes of cache is fine | Expire caches with a TTL instead of invalidating them |
 | **Source of truth** | The publishers' own websites | The data can be rebuilt at any time, so it needs no backups |
 
 Constraints I set before writing any code:
@@ -64,7 +64,7 @@ flowchart LR
     gha["GitHub Actions<br/>plan on PRs · deploy on main"]
 
     subgraph aws["AWS · eu-north-1 · no VPC"]
-        scheduler["EventBridge Scheduler<br/>rate(1 hour)"]
+        scheduler["EventBridge Scheduler<br/>rate(6 hours)"]
         lambda["Lambda collector<br/>Python 3.12 · arm64 · 256 MB"]
         ddb[("DynamoDB<br/>provisioned 5/5 · TTL 120 days")]
         s3[("S3 site bucket<br/>private · SSE-S3")]
@@ -85,7 +85,7 @@ flowchart LR
 
 The system has two paths that never meet:
 
-- **Write path, once an hour:** Scheduler → Lambda → publishers over HTTPS → DynamoDB (which
+- **Write path, every six hours:** Scheduler → Lambda → publishers over HTTPS → DynamoDB (which
   items are new?) → S3 (publish the snapshot).
 - **Read path, at any time:** reader → CloudFront edge → private S3 bucket through Origin
   Access Control, only on a cache miss. There is no compute and no database on the read path.
@@ -116,7 +116,7 @@ Expand a decision to read it.
 <summary><b>ADR 1: Precompute the read model and serve static files</b></summary>
 
 - **Decision:** the collector renders `news.json`, `feed.xml` and `latest/<source>` into S3
-  once an hour. Readers only ever download files.
+  every six hours. Readers only ever download files.
 - **Why:**
   - Every reader gets the same answer, and it only changes when the collector runs, so
     computing it per request would repeat identical work for every visit.
@@ -126,7 +126,7 @@ Expand a decision to read it.
   - *API Gateway + Lambda:* compute on every request, and API Gateway has no always-free tier.
   - *A server rendering pages (EC2 or Fargate):* billed around the clock for a job that is idle
     more than 99% of the time, plus an OS or image to patch.
-- **Trade-off:** readers can see data up to 1 hour + 5 minutes old, which is fine for news.
+- **Trade-off:** readers can see data up to 6 hours + 5 minutes old, which is fine for news.
 
 </details>
 
@@ -134,7 +134,7 @@ Expand a decision to read it.
 <summary><b>ADR 2: Lambda on arm64, started by EventBridge Scheduler, outside any VPC</b></summary>
 
 - **Decision:** a Python 3.12 Lambda function (arm64, 256 MB, 60 s timeout), invoked by an
-  EventBridge Scheduler schedule, `rate(1 hour)`, that has its own IAM role.
+  EventBridge Scheduler schedule, `rate(6 hours)`, that has its own IAM role.
 - **Why:**
   - Lambda bills per millisecond of a job that averages 9 seconds, and AWS runs it across
     several Availability Zones with no configuration.
@@ -145,7 +145,7 @@ Expand a decision to read it.
   - EventBridge Scheduler is the purpose-built scheduler: a role per schedule, its own retry
     policy, time zones, and 14 million free invocations a month.
 - **Rejected:**
-  - *cron on EC2:* an always-on instance for 14 seconds of work an hour.
+  - *cron on EC2:* an always-on instance for 14 seconds of work every six hours.
   - *Scheduled ECS task on Fargate:* billed per vCPU- and GB-hour, with a container image to
     maintain; too heavy for this job.
   - *GitHub Actions cron:* couples production to CI, and GitHub may delay or drop scheduled runs
@@ -374,7 +374,7 @@ Expand a decision to read it.
 - **Source health is part of the product** (in `news.json` and on the page), so partial
   failures are visible without an alarm.
 - **Rejected:** X-Ray tracing and CloudFront standard logs, which add cost and storage without
-  new insight for one hourly job.
+  new insight for one scheduled job.
 
 </details>
 
@@ -385,9 +385,9 @@ Expand a decision to read it.
 | Failure | What happens | Recovery |
 |---|---|---|
 | An Availability Zone fails | Nothing visible. S3 Standard, DynamoDB, Lambda (outside a VPC), EventBridge Scheduler and SNS are regional services that run across several AZs; CloudFront is global | Automatic |
-| eu-north-1 is unavailable | Collection stops; CloudFront keeps serving its cached copies until they expire | Accepted risk: [multi-Region](#limits-and-what-i-would-change-at-scale) is not worth it for hourly news |
+| eu-north-1 is unavailable | Collection stops; CloudFront keeps serving its cached copies until they expire | Accepted risk: [multi-Region](#limits-and-what-i-would-change-at-scale) is not worth it for six-hourly news |
 | One publisher is down, slow or changes its HTML | That source is flagged as unhealthy in `news.json` and on the page; the other five update normally | Automatic on its next good run |
-| Every publisher fails (for example, no network) | The invocation fails → alarm → email | The next hourly run |
+| Every publisher fails (for example, no network) | The invocation fails → alarm → email | The next six-hourly run |
 | DynamoDB throttles | Adaptive retries; items not written before the deadline are deferred | The next run |
 | An S3 upload fails mid-publish | `news.json` (the baseline) is written last, so the next run sees the change again and re-uploads | The next run |
 | The same invocation is delivered twice | Conditional puts write nothing twice; `news.json` is just rewritten | None needed |
@@ -407,7 +407,7 @@ Expand a decision to read it.
 | **Reliability** | Multi-AZ managed services; bulkheads; deadlines; idempotent writes; ordered publishing; data rebuildable from the sources | Single Region |
 | **Performance efficiency** | Precomputed responses served from the edge; HTTP/3 and compression; one Query per source | `PriceClass_100` covers North America and Europe only |
 | **Cost optimization** | Always-free by design; arm64; no VPC or NAT; change-aware writes; TTL; budget alerts | S3 requests are the only metered item (about a cent a month) |
-| **Sustainability** | Compute runs for seconds per hour, on Graviton; nothing idles; the CDN avoids repeated work | None significant |
+| **Sustainability** | Compute runs for seconds every six hours, on Graviton; nothing idles; the CDN avoids repeated work | None significant |
 
 ---
 

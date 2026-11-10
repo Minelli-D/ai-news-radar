@@ -466,7 +466,7 @@
       </svg>
       <h1>Building AI News Radar</h1>
     </div>
-    <p class="lede">A public page that collects the latest AI news every hour, on a serverless AWS stack
+    <p class="lede">A public page that collects the latest AI news every six hours, on a serverless AWS stack
       that costs about one cent a month. This log records each step: what was checked, what was built,
       what the tests caught, and what is left before the site goes live.</p>
     <div class="pills">
@@ -631,7 +631,7 @@
           <ul>
             <li>DynamoDB with 5 read and 5 write units, TTL, and Query-only access.</li>
             <li>A private S3 bucket served only through CloudFront with Origin Access Control.</li>
-            <li>The Lambda: Python 3.12, arm64, 256 MB, 60 seconds, no VPC. EventBridge Scheduler runs it every hour.</li>
+            <li>The Lambda: Python 3.12, arm64, 256 MB, 60 seconds, no VPC. EventBridge Scheduler runs it every six hours.</li>
             <li>An alarm on collector errors that emails the owner through SNS.</li>
             <li>The collector may write only <code>news.json</code>, <code>feed.xml</code> and <code>latest/*</code>,
               so it cannot overwrite the site itself.</li>

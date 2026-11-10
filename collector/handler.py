@@ -1,4 +1,4 @@
-"""AWS Lambda entry point, invoked hourly by EventBridge Scheduler.
+"""AWS Lambda entry point, invoked every six hours by EventBridge Scheduler.
 
 Environment: TABLE_NAME, BUCKET_NAME, SITE_URL (and optionally REPO_URL for the User-Agent).
 The invocation fails (-> CloudWatch alarm) on infrastructure errors or when every source

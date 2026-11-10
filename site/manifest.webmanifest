@@ -2,7 +2,7 @@
   "id": "/",
   "name": "AI News Radar",
   "short_name": "AI Radar",
-  "description": "The latest news from the main AI labs, collected every hour.",
+  "description": "The latest news from the main AI labs, collected every six hours.",
   "lang": "en",
   "start_url": "/",
   "scope": "/",

@@ -1,4 +1,4 @@
-# EventBridge Scheduler (hourly) -> Lambda "collector": Python 3.12, arm64, 256 MB, 60 s,
+# EventBridge Scheduler (every 6 hours) -> Lambda "collector": Python 3.12, arm64, 256 MB, 60 s,
 # no VPC (no NAT Gateway, no public IPv4 charges), no reserved or provisioned concurrency.
 
 # CloudWatch Logs are encrypted at rest by default; a customer-managed key would cost money.
@@ -70,7 +70,7 @@ resource "aws_iam_role_policy" "collector" {
   policy = data.aws_iam_policy_document.collector.json
 }
 
-# X-Ray tracing is not needed for one hourly batch job; the JSON summary line covers it.
+# X-Ray tracing is not needed for this batch job; the JSON summary line covers it.
 #trivy:ignore:AWS-0066
 resource "aws_lambda_function" "collector" {
   function_name    = local.function_name
@@ -105,7 +105,7 @@ resource "aws_lambda_function" "collector" {
 }
 
 # A failed run is not retried by Lambda: a retry would hit every source again. The next
-# hourly run picks everything up.
+# next scheduled run picks everything up.
 resource "aws_lambda_function_event_invoke_config" "collector" {
   function_name                = aws_lambda_function.collector.function_name
   maximum_retry_attempts       = 0

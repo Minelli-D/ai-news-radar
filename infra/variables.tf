@@ -42,7 +42,7 @@ variable "lambda_zip_path" {
 variable "schedule_expression" {
   description = "EventBridge Scheduler expression for the collector."
   type        = string
-  default     = "rate(1 hour)"
+  default     = "rate(6 hours)"
 }
 
 variable "log_retention_days" {

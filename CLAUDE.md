@@ -98,7 +98,7 @@ signature). Local checks without credentials:
   DynamoDB provisioned 5/5 + TTL, private site bucket + CloudFront with OAC (AWS-managed
   cache and header policies only, so it stays compatible with the flat-rate Free plan), Lambda
   (`build/collector.zip` from `scripts/build_lambda.py`, JSON logging, async retries 0),
-  EventBridge Scheduler (hourly), SNS email + Errors alarm.
+  EventBridge Scheduler (every six hours), SNS email + Errors alarm.
 - The collector's IAM policy allows `s3:PutObject` only on `news.json`, `feed.xml` and
   `latest/*`, and `s3:ListBucket` so that a missing `news.json` (first run) returns 404 instead of 403.
 
@@ -110,7 +110,7 @@ AWS_PROFILE=minelli-d .tools/terraform -chdir=infra plan   # read-only; never ap
 
 ## Architecture
 
-EventBridge Scheduler (hourly) → Lambda `collector.handler.lambda_handler` → DynamoDB + S3 →
+EventBridge Scheduler (every six hours) → Lambda `collector.handler.lambda_handler` → DynamoDB + S3 →
 CloudFront. `collector/pipeline.py::run` is one run:
 
 1. `repo.latest(slug, 20)` for every source: a DynamoDB Query, newest first (`storage.py`).

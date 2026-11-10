@@ -104,8 +104,8 @@ function renderItems() {
         "p",
         "placeholder",
         current === ALL
-          ? "No headlines collected yet. They appear here after the first hourly check."
-          : `No posts from ${name} yet. New posts appear here after the next hourly check.`,
+          ? "No headlines collected yet. They appear here after the first check."
+          : `No posts from ${name} yet. New posts appear here after the next scheduled check.`,
       ),
     );
   } else {
@@ -218,7 +218,7 @@ function renderUpdated() {
   view.updated.textContent = !when
     ? "Update time unknown"
     : stale
-      ? `Updated ${when}, later than the usual hourly check`
+      ? `Updated ${when}, later than the usual six-hour check`
       : `Updated ${when}`;
   view.updated.dateTime = data.generatedAt;
   view.freshness.dataset.state = stale ? "stale" : "fresh";
@@ -277,7 +277,7 @@ function renderLoadError(reason) {
     element(
       "p",
       "notice-note",
-      "The list is rebuilt every hour, so reload in a few minutes. The RSS feed has the same headlines.",
+      "The list is rebuilt every six hours. The RSS feed has the same headlines.",
     ),
     reload,
   );
