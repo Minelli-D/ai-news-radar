@@ -72,6 +72,21 @@ def test_unexpected_embedded_data_shape_falls_back_to_the_visible_list() -> None
     assert [item.title for item in items] == ["Visible post"]
 
 
+def test_articles_are_read_like_posts() -> None:
+    # the CMS type was renamed from "post" to "article"; the fields are the same
+    flight = (
+        '{"posts":[{"_type":"article","slug":{"current":"an-article"},"title":"An article",'
+        '"publishedOn":"2026-09-24","summary":"A short public summary.","directories":null}]}'
+    )
+
+    [item] = anthropic.fetch(FakeHttp({NEWS: page_with(flight)}))
+
+    assert item.url == "https://www.anthropic.com/news/an-article"
+    assert item.title == "An article"
+    assert item.published_at == datetime(2026, 9, 24, 12, 0, tzinfo=UTC)
+    assert item.description == "A short public summary."
+
+
 def test_posts_without_a_valid_directory_default_to_news() -> None:
     flight = (
         '{"posts":[{"_type":"post","slug":{"current":"a-post"},"title":"A post",'
